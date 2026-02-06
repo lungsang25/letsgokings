@@ -56,6 +56,23 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const USERS_COLLECTION = 'users';
+const GUESTS_COLLECTION = 'guests';
+const GUEST_ID_KEY = 'letsgokings_guest_id';
+
+// Get or create a persistent guest ID
+const getOrCreateGuestId = (): string => {
+  let guestId = localStorage.getItem(GUEST_ID_KEY);
+  if (!guestId) {
+    guestId = 'guest_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    localStorage.setItem(GUEST_ID_KEY, guestId);
+  }
+  return guestId;
+};
+
+// Get existing guest ID (returns null if none exists)
+const getExistingGuestId = (): string | null => {
+  return localStorage.getItem(GUEST_ID_KEY);
+};
 
 // Helper to calculate days from streak
 const calculateDaysCount = (streak: StreakData): number => {
@@ -64,6 +81,17 @@ const calculateDaysCount = (streak: StreakData): number => {
   const now = new Date();
   const diffTime = Math.abs(now.getTime() - start.getTime());
   return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+};
+
+// Check if user has been inactive for more than 24 hours
+const isInactiveOver24Hours = (streak: StreakData): boolean => {
+  if (!streak || streak.isActive) return false; // Active users are not filtered
+  
+  const lastUpdate = new Date(streak.lastUpdateTime);
+  const now = new Date();
+  const hoursSinceInactive = (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60);
+  
+  return hoursSinceInactive > 24;
 };
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -107,41 +135,71 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return () => unsubscribe();
   }, []);
 
-  // Subscribe to leaderboard updates from Firestore
+  // Subscribe to leaderboard updates from both users and guests collections
   useEffect(() => {
-    const q = query(collection(db, USERS_COLLECTION));
+    const usersQuery = query(collection(db, USERS_COLLECTION));
+    const guestsQuery = query(collection(db, GUESTS_COLLECTION));
     
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const entries: LeaderboardEntry[] = [];
-      
+    let usersEntries: LeaderboardEntry[] = [];
+    let guestsEntries: LeaderboardEntry[] = [];
+    
+    const updateLeaderboard = () => {
+      const allEntries = [...usersEntries, ...guestsEntries];
+      // Filter out users who have been inactive for more than 24 hours
+      const activeEntries = allEntries.filter(entry => !isInactiveOver24Hours(entry.streak));
+      // Sort by days count descending
+      activeEntries.sort((a, b) => b.daysCount - a.daysCount);
+      setLeaderboard(activeEntries);
+    };
+    
+    const unsubscribeUsers = onSnapshot(usersQuery, (snapshot) => {
+      usersEntries = [];
       snapshot.forEach((doc) => {
         const data = doc.data() as FirestoreUserDoc;
-        entries.push({
+        usersEntries.push({
           user: data.user,
           streak: data.streak,
           daysCount: calculateDaysCount(data.streak),
         });
       });
-      
-      // Sort by days count descending
-      entries.sort((a, b) => b.daysCount - a.daysCount);
-      setLeaderboard(entries);
+      updateLeaderboard();
       setIsLoading(false);
     }, (error) => {
-      console.error('Error fetching leaderboard:', error);
+      console.error('Error fetching users leaderboard:', error);
+      setIsLoading(false);
+    });
+    
+    const unsubscribeGuests = onSnapshot(guestsQuery, (snapshot) => {
+      guestsEntries = [];
+      snapshot.forEach((doc) => {
+        const data = doc.data() as FirestoreUserDoc;
+        guestsEntries.push({
+          user: data.user,
+          streak: data.streak,
+          daysCount: calculateDaysCount(data.streak),
+        });
+      });
+      updateLeaderboard();
+      setIsLoading(false);
+    }, (error) => {
+      console.error('Error fetching guests leaderboard:', error);
       setIsLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeUsers();
+      unsubscribeGuests();
+    };
   }, []);
 
   // Load current user's streak data when they log in
   useEffect(() => {
-    if (!currentUser || currentUser.isGuest) return;
+    if (!currentUser) return;
 
     const fetchUserData = async () => {
       try {
-        const userDoc = await getDoc(doc(db, USERS_COLLECTION, currentUser.id));
+        const collectionName = currentUser.isGuest ? GUESTS_COLLECTION : USERS_COLLECTION;
+        const userDoc = await getDoc(doc(db, collectionName, currentUser.id));
         if (userDoc.exists()) {
           const data = userDoc.data() as FirestoreUserDoc;
           setStreakData(data.streak);
@@ -154,6 +212,33 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     fetchUserData();
   }, [currentUser]);
 
+  // Restore guest session from localStorage on mount
+  useEffect(() => {
+    const restoreGuestSession = async () => {
+      // Only restore if no authenticated user
+      if (currentUser) return;
+      
+      const existingGuestId = getExistingGuestId();
+      if (!existingGuestId) return;
+      
+      try {
+        const guestDoc = await getDoc(doc(db, GUESTS_COLLECTION, existingGuestId));
+        if (guestDoc.exists()) {
+          const data = guestDoc.data() as FirestoreUserDoc;
+          setCurrentUser(data.user);
+          setStreakData(data.streak);
+        }
+      } catch (error) {
+        console.error('Error restoring guest session:', error);
+      }
+    };
+
+    // Wait for auth state to settle before restoring guest
+    if (!isLoading) {
+      restoreGuestSession();
+    }
+  }, [isLoading, currentUser]);
+
   const getDaysCount = (): number => {
     if (!streakData?.startDate || !streakData.isActive) return 0;
     const start = new Date(streakData.startDate);
@@ -162,44 +247,74 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return Math.floor(diffTime / (1000 * 60 * 60 * 24));
   };
 
-  // Save user data to Firestore
+  // Save user data to Firestore (users or guests collection)
   const saveToFirestore = async (user: User, streak: StreakData) => {
-    if (user.isGuest) return; // Don't save guest users to Firestore
+    const collectionName = user.isGuest ? GUESTS_COLLECTION : USERS_COLLECTION;
     
     try {
-      const userDoc: FirestoreUserDoc = {
-        user,
+      // Remove undefined fields (Firestore doesn't accept undefined)
+      const cleanUser = {
+        id: user.id,
+        name: user.name,
+        isGuest: user.isGuest,
+        ...(user.email && { email: user.email }),
+        ...(user.photoUrl && { photoUrl: user.photoUrl }),
+      };
+      
+      const userDoc = {
+        user: cleanUser,
         streak,
         updatedAt: Timestamp.now(),
       };
-      await setDoc(doc(db, USERS_COLLECTION, user.id), userDoc);
+      await setDoc(doc(db, collectionName, user.id), userDoc);
     } catch (error) {
       console.error('Error saving to Firestore:', error);
     }
   };
 
   const login = async (user: User) => {
-    setCurrentUser(user);
+    // For guests, ensure we use persistent ID
+    const finalUser = user.isGuest 
+      ? { ...user, id: getOrCreateGuestId() }
+      : user;
     
-    if (!user.isGuest) {
-      // Check if user exists in Firestore
-      try {
-        const userDoc = await getDoc(doc(db, USERS_COLLECTION, user.id));
-        if (userDoc.exists()) {
-          const data = userDoc.data() as FirestoreUserDoc;
-          setStreakData(data.streak);
-          // Update user info (photo, name might have changed)
-          await saveToFirestore(user, data.streak);
-        }
-      } catch (error) {
-        console.error('Error during login:', error);
+    setCurrentUser(finalUser);
+    
+    // Check if user exists in Firestore (both authenticated and guest)
+    const collectionName = finalUser.isGuest ? GUESTS_COLLECTION : USERS_COLLECTION;
+    try {
+      const userDoc = await getDoc(doc(db, collectionName, finalUser.id));
+      if (userDoc.exists()) {
+        const data = userDoc.data() as FirestoreUserDoc;
+        setStreakData(data.streak);
+        // Update user info (photo, name might have changed)
+        await saveToFirestore(finalUser, data.streak);
+      } else if (finalUser.isGuest) {
+        // New guest - don't save to Firestore yet, only save when they start challenge
+        // Just set initial local state
+        const initialStreak: StreakData = {
+          userId: finalUser.id,
+          startDate: null,
+          isActive: false,
+          lastUpdateTime: new Date().toISOString(),
+        };
+        setStreakData(initialStreak);
       }
+    } catch (error) {
+      console.error('Error during login:', error);
     }
   };
 
   const logout = async () => {
     try {
-      await signOut(auth);
+      // Only sign out from Firebase Auth if not a guest
+      if (currentUser && !currentUser.isGuest) {
+        await signOut(auth);
+      }
+      // Clear guest ID from localStorage when logging out
+      if (currentUser?.isGuest) {
+        localStorage.removeItem(GUEST_ID_KEY);
+      }
       setCurrentUser(null);
       setStreakData(null);
     } catch (error) {

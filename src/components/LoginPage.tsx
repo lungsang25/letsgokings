@@ -213,11 +213,11 @@ const LoginPage = () => {
                 </p>
               </div>
 
-              {/* Guest Warning */}
+              {/* Guest Info */}
               <Alert className="bg-[#252a3a] border-gray-600 rounded-lg">
                 <Info className="h-4 w-4 text-gray-400" />
                 <AlertDescription className="text-sm text-gray-400 ml-2">
-                  Guest data is stored locally and may be lost if you clear browser data.
+                  Your progress will be saved and visible on the public leaderboard.
                 </AlertDescription>
               </Alert>
 
