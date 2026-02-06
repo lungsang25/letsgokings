@@ -93,7 +93,7 @@ const Header = () => {
                   <ChevronDown className="h-5 w-5 text-muted-foreground" strokeWidth={2.5} />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuContent align="end" className="w-32">
                 <DropdownMenuItem onClick={() => setRulesOpen(true)} className="cursor-pointer">
                   <BookOpen className="h-4 w-4 mr-2" />
                   Rules

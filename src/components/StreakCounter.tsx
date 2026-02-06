@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Flame, Calendar } from 'lucide-react';
+import { Flame, Calendar, Trophy } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 
 const StreakCounter = () => {
-  const { streakData } = useApp();
+  const { streakData, currentUser, leaderboard } = useApp();
   const [displayDays, setDisplayDays] = useState(0);
   const [hours, setHours] = useState(0);
   const [minutes, setMinutes] = useState(0);
@@ -41,11 +41,24 @@ const StreakCounter = () => {
 
   const isActive = streakData?.isActive && streakData?.startDate;
 
+  // Calculate user's rank from leaderboard
+  const userRank = currentUser 
+    ? leaderboard.findIndex(entry => entry.user.id === currentUser.id) + 1 
+    : 0;
+
   return (
     <div className="card-elevated p-6 sm:p-8">
-      <div className="flex items-center gap-2 mb-6">
-        <Flame className={`h-5 w-5 ${isActive ? 'text-primary animate-pulse-glow' : 'text-muted-foreground'}`} />
-        <h2 className="text-lg font-semibold">Your Streak</h2>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2">
+          <Flame className={`h-5 w-5 ${isActive ? 'text-primary animate-pulse-glow' : 'text-muted-foreground'}`} />
+          <h2 className="text-lg font-semibold">Your Streak</h2>
+        </div>
+        {userRank > 0 && (
+          <div className="flex items-center gap-1">
+            <Trophy className="h-5 w-5 text-primary" />
+            <span className="text-lg font-semibold text-white">{userRank}</span>
+          </div>
+        )}
       </div>
 
       <div className="text-center">
