@@ -61,7 +61,7 @@ const Dashboard = () => {
           <p className="text-muted-foreground max-w-md mx-auto">
             {isActive 
               ? `${daysCount} days of power. Every moment strengthens your resolve.`
-              : "Take the first step towards mastering your energy and unlocking your potential."
+              : "Semen retention is the answer you are searching for."
             }
           </p>
         </div>
