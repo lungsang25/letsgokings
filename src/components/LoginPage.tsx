@@ -1,5 +1,7 @@
 import { useState, useRef } from 'react';
-import { Crown, Info, Camera, User } from 'lucide-react';
+import { signInWithPopup } from 'firebase/auth';
+import { Crown, Info, Camera, User, Loader2 } from 'lucide-react';
+import { auth, googleProvider } from '@/lib/firebase';
 import { useApp } from '@/contexts/AppContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,18 +12,32 @@ const LoginPage = () => {
   const [guestName, setGuestName] = useState('');
   const [showGuestForm, setShowGuestForm] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleGoogleLogin = () => {
-    // Placeholder for Google OAuth - would integrate with Firebase/Supabase
-    const mockGoogleUser = {
-      id: 'google_' + Date.now(),
-      name: 'Warrior ' + Math.floor(Math.random() * 1000),
-      email: 'user@example.com',
-      isGuest: false,
-      photoUrl: profileImage || undefined,
-    };
-    login(mockGoogleUser);
+  const handleGoogleLogin = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+      
+      login({
+        id: user.uid,
+        name: user.displayName || 'Warrior',
+        email: user.email || undefined,
+        photoUrl: user.photoURL || undefined,
+        isGuest: false,
+      });
+    } catch (err: unknown) {
+      console.error('Google sign-in error:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to sign in with Google';
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleGuestLogin = () => {
@@ -81,10 +97,20 @@ const LoginPage = () => {
                 </p>
               </div>
 
+              {/* Error Message */}
+              {error && (
+                <Alert className="bg-red-500/10 border-red-500/50 rounded-lg">
+                  <AlertDescription className="text-sm text-red-400">
+                    {error}
+                  </AlertDescription>
+                </Alert>
+              )}
+
               {/* Google Login */}
               <Button
                 onClick={handleGoogleLogin}
-                className="w-full h-12 bg-white text-gray-900 hover:bg-gray-100 font-medium rounded-lg"
+                disabled={isLoading}
+                className="w-full h-12 bg-white text-gray-900 hover:bg-gray-100 font-medium rounded-lg disabled:opacity-50"
               >
                 <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
                   <path
@@ -104,7 +130,14 @@ const LoginPage = () => {
                     d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                   />
                 </svg>
-                Continue with Google
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  'Continue with Google'
+                )}
               </Button>
 
               <div className="relative">
