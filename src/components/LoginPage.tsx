@@ -58,7 +58,6 @@ const LoginPage = () => {
   const { login } = useApp();
   const [guestName, setGuestName] = useState('');
   const [showGuestForm, setShowGuestForm] = useState(false);
-  const [showGuestDisabledMessage, setShowGuestDisabledMessage] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -242,25 +241,15 @@ const LoginPage = () => {
               </div>
             </div>
 
-            {/* Guest Login Button - Disabled */}
+            {/* Guest Login Button */}
             <Button
               variant="outline"
-              onClick={() => setShowGuestDisabledMessage(true)}
-              className="w-full h-12 border-gray-600/50 text-gray-500 hover:bg-gray-500/10 rounded-full"
+              onClick={() => setShowGuestForm(true)}
+              className="w-full h-12 border-blue-500/50 text-blue-400 hover:bg-blue-500/10 rounded-full"
             >
               <User className="h-4 w-4 mr-2" />
               Continue as Guest
             </Button>
-
-            {/* Guest Disabled Message */}
-            {showGuestDisabledMessage && (
-              <Alert className="bg-yellow-500/10 border-yellow-500/50 rounded-xl">
-                <Info className="h-4 w-4 text-yellow-400" />
-                <AlertDescription className="text-sm text-yellow-300 ml-2">
-                  Guest login is not available right now. Please sign in with Google to continue.
-                </AlertDescription>
-              </Alert>
-            )}
 
             {/* Join message */}
             <p className="text-center text-sm text-gray-500 pt-4">
