@@ -51,12 +51,14 @@ interface AppContextType {
   relapse: () => void;
   confirmActive: () => void;
   getDaysCount: () => number;
+  submitFeedback: (message: string) => Promise<boolean>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const USERS_COLLECTION = 'users';
 const GUESTS_COLLECTION = 'guests';
+const FEEDBACK_COLLECTION = 'feedback';
 const GUEST_ID_KEY = 'letsgokings_guest_id';
 
 // Get or create a persistent guest ID
@@ -359,6 +361,26 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     await saveToFirestore(currentUser, updatedStreak);
   };
 
+  const submitFeedback = async (message: string): Promise<boolean> => {
+    if (!currentUser || !message.trim()) return false;
+    
+    try {
+      const feedbackId = `${currentUser.id}_${Date.now()}`;
+      const feedbackDoc = {
+        userId: currentUser.id,
+        userName: currentUser.name,
+        isGuest: currentUser.isGuest,
+        message: message.trim(),
+        createdAt: Timestamp.now(),
+      };
+      await setDoc(doc(db, FEEDBACK_COLLECTION, feedbackId), feedbackDoc);
+      return true;
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+      return false;
+    }
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -372,6 +394,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         relapse,
         confirmActive,
         getDaysCount,
+        submitFeedback,
       }}
     >
       {children}
