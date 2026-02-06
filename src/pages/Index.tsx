@@ -2,6 +2,7 @@ import { AppProvider, useApp } from '@/contexts/AppContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import LoginPage from '@/components/LoginPage';
 import Dashboard from '@/components/Dashboard';
+import ChatBox from '@/components/ChatBox';
 import { Crown } from 'lucide-react';
 
 const AppContent = () => {
@@ -17,7 +18,12 @@ const AppContent = () => {
     );
   }
   
-  return currentUser ? <Dashboard /> : <LoginPage />;
+  return currentUser ? (
+    <>
+      <Dashboard />
+      <ChatBox />
+    </>
+  ) : <LoginPage />;
 };
 
 const Index = () => {
