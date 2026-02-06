@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getAnalytics, isSupported } from 'firebase/analytics';
 
 const firebaseConfig = {
   apiKey: "AIzaSyBYn8Cm6HMheXYXq-mK6VrjAiuvgoaTODM",
@@ -16,6 +17,9 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const googleProvider = new GoogleAuthProvider();
+
+// Initialize Google Analytics
+export const analytics = isSupported().then(yes => yes ? getAnalytics(app) : null);
 
 // Optional: Add scopes for additional user info
 googleProvider.addScope('profile');
