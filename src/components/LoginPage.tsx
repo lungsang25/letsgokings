@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import { signInWithPopup, getRedirectResult } from 'firebase/auth';
+import { useState, useRef, useEffect } from 'react';
+import { signInWithPopup, signInWithRedirect, getRedirectResult } from 'firebase/auth';
 import { Crown, Info, Camera, User, Loader2 } from 'lucide-react';
 import { auth, googleProvider } from '@/lib/firebase';
 import { FirebaseError } from 'firebase/app';
@@ -16,6 +16,27 @@ const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Handle redirect result (for Safari/Brave fallback)
+  useEffect(() => {
+    const handleRedirectResult = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result?.user) {
+          login({
+            id: result.user.uid,
+            name: result.user.displayName || 'Warrior',
+            email: result.user.email || undefined,
+            photoUrl: result.user.photoURL || undefined,
+            isGuest: false,
+          });
+        }
+      } catch (err) {
+        console.error('Redirect sign-in error:', err);
+      }
+    };
+    handleRedirectResult();
+  }, [login]);
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
@@ -45,7 +66,12 @@ const LoginPage = () => {
           // Retry with fresh state
           setError('Please try again');
         } else if (err.code === 'auth/popup-blocked') {
-          setError('Popup was blocked. Please allow popups for this site.');
+          // Fallback to redirect for browsers that block popups
+          try {
+            await signInWithRedirect(auth, googleProvider);
+          } catch {
+            setError('Sign-in failed. Please try again.');
+          }
         } else {
           setError(err.message);
         }
