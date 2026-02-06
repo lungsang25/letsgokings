@@ -64,6 +64,18 @@ const Header = () => {
 
         {currentUser && (
           <div className="flex items-center gap-3">
+            {/* Rules Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setRulesOpen(true)}
+              className="text-muted-foreground hover:text-foreground"
+              title="View Rules"
+            >
+              <BookOpen className="h-4 w-4" />
+            </Button>
+
+            {/* Day/Night Toggle */}
             <Button
               variant="ghost"
               size="icon"
@@ -94,10 +106,6 @@ const Header = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-32">
-                <DropdownMenuItem onClick={() => setRulesOpen(true)} className="cursor-pointer">
-                  <BookOpen className="h-4 w-4 mr-2" />
-                  Rules
-                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setFeedbackOpen(true)} className="cursor-pointer">
                   <MessageSquare className="h-4 w-4 mr-2" />
                   Feedback
