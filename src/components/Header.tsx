@@ -123,7 +123,7 @@ const Header = () => {
             <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/30 border border-border/30">
               <span className="text-lg">1.</span>
               <p className="text-sm text-foreground/90">
-                <span className="font-semibold">Being truthful is the only option on this platform.</span> Honesty is the foundation of your journey and our community.
+                <span className="font-semibold">Please be truthful.</span> Honesty is the foundation of your journey and our community.
               </p>
             </div>
             <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/30 border border-border/30">

@@ -31,12 +31,12 @@ const MAX_MESSAGES = 100;
 
 const ChatBox = () => {
   const { currentUser } = useApp();
-  const [isOpen, setIsOpen] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
+  const [isMinimized, setIsMinimized] = useState(true);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Subscribe to real-time messages
@@ -64,8 +64,8 @@ const ChatBox = () => {
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
 
@@ -112,6 +112,21 @@ const ChatBox = () => {
       .join('')
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  // Generate consistent color from username
+  const getUserColor = (name: string) => {
+    const colors = [
+      '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
+      '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
+      '#F8B500', '#FF6F61', '#6B5B95', '#88B04B', '#F7CAC9',
+      '#92A8D1', '#955251', '#B565A7', '#009B77', '#DD4124'
+    ];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return colors[Math.abs(hash) % colors.length];
   };
 
   // Floating button when chat is closed
@@ -173,8 +188,8 @@ const ChatBox = () => {
       {!isMinimized && (
         <>
           {/* Messages area */}
-          <ScrollArea className="flex-1 p-3" ref={scrollRef}>
-            <div className="space-y-3">
+          <ScrollArea className="flex-1 p-3">
+            <div className="space-y-0.5">
               {messages.length === 0 ? (
                 <div className="text-center text-muted-foreground py-8">
                   <MessageCircle className="h-10 w-10 mx-auto mb-2 opacity-50" />
@@ -183,38 +198,26 @@ const ChatBox = () => {
                 </div>
               ) : (
                 messages.map((msg) => (
-                  <div 
-                    key={msg.id} 
-                    className={`flex gap-2 ${msg.userId === currentUser?.id ? 'flex-row-reverse' : ''}`}
-                  >
-                    <Avatar className="h-8 w-8 flex-shrink-0">
+                  <div key={msg.id} className="flex items-start gap-1.5 py-0.5 hover:bg-muted/50 px-1 rounded">
+                    <Avatar className="h-5 w-5 flex-shrink-0 mt-0.5">
                       <AvatarImage src={msg.userPhoto} />
-                      <AvatarFallback className="text-xs bg-amber-100 text-amber-700">
+                      <AvatarFallback className="text-[10px] bg-amber-100 text-amber-700">
                         {getInitials(msg.userName)}
                       </AvatarFallback>
                     </Avatar>
-                    <div className={`flex flex-col max-w-[75%] ${msg.userId === currentUser?.id ? 'items-end' : ''}`}>
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-xs font-medium text-muted-foreground">
-                          {msg.userName}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground/60">
-                          {formatTime(msg.createdAt)}
-                        </span>
-                      </div>
-                      <div 
-                        className={`px-3 py-2 rounded-lg text-sm ${
-                          msg.userId === currentUser?.id 
-                            ? 'bg-amber-500 text-white rounded-br-none' 
-                            : 'bg-muted rounded-bl-none'
-                        }`}
+                    <p className="text-sm leading-relaxed break-words min-w-0">
+                      <span 
+                        className="font-semibold mr-1"
+                        style={{ color: getUserColor(msg.userName) }}
                       >
-                        {msg.text}
-                      </div>
-                    </div>
+                        {msg.userName}:
+                      </span>
+                      <span className="text-foreground">{msg.text}</span>
+                    </p>
                   </div>
                 ))
               )}
+              <div ref={messagesEndRef} />
             </div>
           </ScrollArea>
 
