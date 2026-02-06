@@ -1,7 +1,8 @@
 import { useState, useRef } from 'react';
-import { signInWithPopup } from 'firebase/auth';
+import { signInWithPopup, getRedirectResult } from 'firebase/auth';
 import { Crown, Info, Camera, User, Loader2 } from 'lucide-react';
 import { auth, googleProvider } from '@/lib/firebase';
+import { FirebaseError } from 'firebase/app';
 import { useApp } from '@/contexts/AppContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,8 +34,25 @@ const LoginPage = () => {
       });
     } catch (err: unknown) {
       console.error('Google sign-in error:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to sign in with Google';
-      setError(errorMessage);
+      
+      // Handle specific Firebase errors
+      if (err instanceof FirebaseError) {
+        if (err.code === 'auth/popup-closed-by-user') {
+          // User closed popup, no error needed
+          setError(null);
+        } else if (err.code === 'auth/missing-or-invalid-nonce' || 
+                   err.code === 'auth/credential-already-in-use') {
+          // Retry with fresh state
+          setError('Please try again');
+        } else if (err.code === 'auth/popup-blocked') {
+          setError('Popup was blocked. Please allow popups for this site.');
+        } else {
+          setError(err.message);
+        }
+      } else {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to sign in with Google';
+        setError(errorMessage);
+      }
     } finally {
       setIsLoading(false);
     }

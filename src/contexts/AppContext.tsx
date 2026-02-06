@@ -9,7 +9,8 @@ import {
   orderBy,
   Timestamp
 } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { db, auth } from '@/lib/firebase';
 
 export interface User {
   id: string;
@@ -70,6 +71,41 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [streakData, setStreakData] = useState<StreakData | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Listen for Firebase Auth state changes (persists login across refreshes)
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        // User is signed in - restore session
+        const user: User = {
+          id: firebaseUser.uid,
+          name: firebaseUser.displayName || 'Warrior',
+          email: firebaseUser.email || undefined,
+          photoUrl: firebaseUser.photoURL || undefined,
+          isGuest: false,
+        };
+        setCurrentUser(user);
+        
+        // Fetch user's streak data from Firestore
+        try {
+          const userDoc = await getDoc(doc(db, USERS_COLLECTION, user.id));
+          if (userDoc.exists()) {
+            const data = userDoc.data() as FirestoreUserDoc;
+            setStreakData(data.streak);
+          }
+        } catch (error) {
+          console.error('Error fetching user data:', error);
+        }
+      } else {
+        // User is signed out
+        setCurrentUser(null);
+        setStreakData(null);
+      }
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   // Subscribe to leaderboard updates from Firestore
   useEffect(() => {
@@ -161,9 +197,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
-  const logout = () => {
-    setCurrentUser(null);
-    setStreakData(null);
+  const logout = async () => {
+    try {
+      await signOut(auth);
+      setCurrentUser(null);
+      setStreakData(null);
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   const startChallenge = async () => {
