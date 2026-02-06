@@ -67,12 +67,11 @@ const Header = () => {
             {/* Rules Button */}
             <Button
               variant="ghost"
-              size="icon"
               onClick={() => setRulesOpen(true)}
-              className="text-muted-foreground hover:text-foreground"
+              className="text-muted-foreground hover:text-foreground text-xs px-2"
               title="View Rules"
             >
-              <BookOpen className="h-4 w-4" />
+              Rules
             </Button>
 
             {/* Day/Night Toggle */}
