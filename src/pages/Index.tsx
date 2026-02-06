@@ -1,4 +1,5 @@
 import { AppProvider, useApp } from '@/contexts/AppContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 import LoginPage from '@/components/LoginPage';
 import Dashboard from '@/components/Dashboard';
 
@@ -10,9 +11,11 @@ const AppContent = () => {
 
 const Index = () => {
   return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
+    <ThemeProvider>
+      <AppProvider>
+        <AppContent />
+      </AppProvider>
+    </ThemeProvider>
   );
 };
 
