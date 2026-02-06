@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Flame, AlertTriangle, CheckCircle, Crown, RefreshCw } from 'lucide-react';
+import { Flame, AlertTriangle, CheckCircle, Crown, RefreshCw, Quote } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,6 +16,7 @@ import {
 import StreakCounter from './StreakCounter';
 import Leaderboard from './Leaderboard';
 import Header from './Header';
+import quotesData from '@/data/quotes.json';
 
 const Dashboard = () => {
   const { streakData, startChallenge, relapse, confirmActive, getDaysCount } = useApp();
@@ -152,29 +153,16 @@ const Dashboard = () => {
               )}
             </div>
 
-            {/* Milestones */}
+            {/* Daily Quote */}
             {isActive && (
               <div className="card-elevated p-6">
-                <h3 className="font-semibold mb-4">Milestones</h3>
-                <div className="grid grid-cols-4 gap-2">
-                  {[7, 14, 30, 90].map((milestone) => (
-                    <div
-                      key={milestone}
-                      className={`
-                        text-center p-3 rounded-lg border transition-all
-                        ${daysCount >= milestone 
-                          ? 'bg-primary/10 border-primary/30 text-primary'
-                          : 'bg-secondary/30 border-border/30 text-muted-foreground'
-                        }
-                      `}
-                    >
-                      <div className="text-lg font-bold">{milestone}</div>
-                      <div className="text-xs">days</div>
-                      {daysCount >= milestone && (
-                        <CheckCircle className="h-4 w-4 mx-auto mt-1" />
-                      )}
-                    </div>
-                  ))}
+                <div className="flex items-center gap-2 mb-4">
+
+                </div>
+                <div className="p-4 rounded-lg bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20">
+                  <p className="text-sm italic text-foreground/90 leading-relaxed">
+                    "{quotesData.quotes[Math.max(0, daysCount - 1) % quotesData.quotes.length]}"
+                  </p>
                 </div>
               </div>
             )}
