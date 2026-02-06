@@ -83,11 +83,6 @@ const UserCard = ({
               You
             </span>
           )}
-          {isGuest && (
-            <span className={`text-xs ${rank <= 3 ? 'text-background/70' : 'text-muted-foreground'}`}>
-              (Guest)
-            </span>
-          )}
         </div>
         <div className={`flex items-center gap-1 text-sm ${rank <= 3 ? 'text-background/80' : 'text-muted-foreground'}`}>
           {isActive ? (
