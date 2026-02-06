@@ -131,13 +131,25 @@ const Header = () => {
             <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/30 border border-border/30">
               <span className="text-lg">1.</span>
               <p className="text-sm text-foreground/90">
-                <span className="font-semibold">Please be truthful.</span> Honesty is the foundation of your journey and our community.
+                <span className="font-semibold">Authenticated users will be move above guest users in the leaderboard.</span>
               </p>
             </div>
             <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/30 border border-border/30">
               <span className="text-lg">2.</span>
               <p className="text-sm text-foreground/90">
-                <span className="font-semibold">If you don't confirm your streak in the next 48 hours, you will be considered relapsed.</span> Stay active and accountable.
+                <span className="font-semibold">Confirm your streak within 36 hours to stay active — otherwise, you'll be marked as relapsed.</span>
+              </p>
+            </div>
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/30 border border-border/30">
+              <span className="text-lg">3.</span>
+              <p className="text-sm text-foreground/90">
+                <span className="font-semibold">Relapsed warriors will be removed from the leaderboard after 24 hours of inactivity.</span>
+              </p>
+            </div>
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/30 border border-border/30">
+              <span className="text-lg">4.</span>
+              <p className="text-sm text-foreground/90">
+                <span className="font-semibold">Sign in to keep your streak safe and secure across devices.</span>
               </p>
             </div>
           </div>
