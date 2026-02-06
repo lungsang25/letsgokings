@@ -86,42 +86,38 @@ const Dashboard = () => {
                   </Button>
                 ) : (
                   <>
-                    {/* Confirm Still Active */}
-                    <Button
-                      onClick={handleConfirmActive}
-                      variant="outline"
-                      className="w-full h-12 border-success/50 text-success hover:bg-success/10 hover:border-success font-medium"
-                    >
-                      {showConfirmation ? (
-                        <>
-                          <CheckCircle className="h-5 w-5 mr-2" />
-                          Status Confirmed!
-                        </>
-                      ) : (
-                        <>
-                          <RefreshCw className="h-5 w-5 mr-2" />
-                          Confirm Still On Track
-                        </>
-                      )}
-                    </Button>
+                    {/* Action Buttons Row */}
+                    <div className="flex gap-3">
+                      {/* Confirm Still Active */}
+                      <Button
+                        onClick={handleConfirmActive}
+                        variant="outline"
+                        className="flex-1 h-12 border-success/50 text-success hover:bg-success/10 hover:border-success font-medium"
+                      >
+                        {showConfirmation ? (
+                          <>
+                            <CheckCircle className="h-5 w-5 mr-2" />
+                            Confirmed!
+                          </>
+                        ) : (
+                          <>
+                            <RefreshCw className="h-5 w-5 mr-2" />
+                            I Am On Track
+                          </>
+                        )}
+                      </Button>
 
-                    {needsConfirmation() && (
-                      <p className="text-xs text-amber-500 text-center">
-                        ⚠️ Please confirm your status within 48 hours to stay active
-                      </p>
-                    )}
-
-                    {/* Relapse Button */}
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="w-full h-12 border-destructive/50 text-destructive hover:bg-destructive/10 hover:border-destructive font-medium"
-                        >
-                          <AlertTriangle className="h-5 w-5 mr-2" />
-                          Report Relapse
-                        </Button>
-                      </AlertDialogTrigger>
+                      {/* Relapse Button */}
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="flex-1 h-12 border-destructive/50 text-destructive hover:bg-destructive/10 hover:border-destructive font-medium"
+                          >
+                            <AlertTriangle className="h-5 w-5 mr-2" />
+                            I Relapsed
+                          </Button>
+                        </AlertDialogTrigger>
                       <AlertDialogContent className="bg-card border-border">
                         <AlertDialogHeader>
                           <AlertDialogTitle className="font-display">Reset Your Streak?</AlertDialogTitle>
@@ -133,13 +129,20 @@ const Dashboard = () => {
                           <AlertDialogCancel className="border-border/50">Keep Going</AlertDialogCancel>
                           <AlertDialogAction
                             onClick={relapse}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            className="bg-success text-success-foreground hover:bg-success/90"
                           >
                             Reset & Rise Again
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
-                    </AlertDialog>
+                      </AlertDialog>
+                    </div>
+
+                    {needsConfirmation() && (
+                      <p className="text-xs text-amber-500 text-center">
+                        ⚠️ Please confirm your status within 48 hours to stay active
+                      </p>
+                    )}
                   </>
                 )}
               </div>
@@ -155,15 +158,10 @@ const Dashboard = () => {
 
             {/* Daily Quote */}
             {isActive && (
-              <div className="card-elevated p-6">
-                <div className="flex items-center gap-2 mb-4">
-
-                </div>
-                <div className="p-4 rounded-lg bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20">
-                  <p className="text-sm italic text-foreground/90 leading-relaxed">
-                    "{quotesData.quotes[Math.max(0, daysCount - 1) % quotesData.quotes.length]}"
-                  </p>
-                </div>
+              <div className="overflow-hidden py-4">
+                <p className="text-sm italic text-foreground/90 leading-relaxed whitespace-nowrap animate-marquee">
+                  "{quotesData.quotes[Math.max(0, daysCount - 1) % quotesData.quotes.length]}"
+                </p>
               </div>
             )}
           </div>
