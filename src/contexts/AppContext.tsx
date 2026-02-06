@@ -1,4 +1,15 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { 
+  collection, 
+  doc, 
+  setDoc, 
+  getDoc, 
+  onSnapshot,
+  query,
+  orderBy,
+  Timestamp
+} from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 export interface User {
   id: string;
@@ -21,10 +32,18 @@ interface LeaderboardEntry {
   daysCount: number;
 }
 
+// Firestore document structure
+interface FirestoreUserDoc {
+  user: User;
+  streak: StreakData;
+  updatedAt: Timestamp;
+}
+
 interface AppContextType {
   currentUser: User | null;
   streakData: StreakData | null;
   leaderboard: LeaderboardEntry[];
+  isLoading: boolean;
   login: (user: User) => void;
   logout: () => void;
   startChallenge: () => void;
@@ -35,119 +54,119 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const STORAGE_KEYS = {
-  USER: 'letsGoKings_user',
-  STREAK: 'letsGoKings_streak',
-  LEADERBOARD: 'letsGoKings_leaderboard',
-};
+const USERS_COLLECTION = 'users';
 
-// Demo users for leaderboard
-const DEMO_USERS: LeaderboardEntry[] = [
-  {
-    user: { id: 'demo1', name: 'Marcus Aurelius', isGuest: false },
-    streak: { userId: 'demo1', startDate: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(), isActive: true, lastUpdateTime: new Date().toISOString() },
-    daysCount: 45,
-  },
-  {
-    user: { id: 'demo2', name: 'David Goggins', isGuest: false },
-    streak: { userId: 'demo2', startDate: new Date(Date.now() - 32 * 24 * 60 * 60 * 1000).toISOString(), isActive: true, lastUpdateTime: new Date().toISOString() },
-    daysCount: 32,
-  },
-  {
-    user: { id: 'demo3', name: 'Jocko Willink', isGuest: false },
-    streak: { userId: 'demo3', startDate: new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString(), isActive: true, lastUpdateTime: new Date().toISOString() },
-    daysCount: 28,
-  },
-  {
-    user: { id: 'demo4', name: 'Andrew Huberman', isGuest: false },
-    streak: { userId: 'demo4', startDate: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString(), isActive: true, lastUpdateTime: new Date().toISOString() },
-    daysCount: 21,
-  },
-  {
-    user: { id: 'demo5', name: 'Jordan Peterson', isGuest: false },
-    streak: { userId: 'demo5', startDate: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(), isActive: true, lastUpdateTime: new Date().toISOString() },
-    daysCount: 14,
-  },
-];
+// Helper to calculate days from streak
+const calculateDaysCount = (streak: StreakData): number => {
+  if (!streak?.startDate || !streak.isActive) return 0;
+  const start = new Date(streak.startDate);
+  const now = new Date();
+  const diffTime = Math.abs(now.getTime() - start.getTime());
+  return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+};
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [streakData, setStreakData] = useState<StreakData | null>(null);
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>(DEMO_USERS);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Load from localStorage on mount
+  // Subscribe to leaderboard updates from Firestore
   useEffect(() => {
-    const savedUser = localStorage.getItem(STORAGE_KEYS.USER);
-    const savedStreak = localStorage.getItem(STORAGE_KEYS.STREAK);
-    const savedLeaderboard = localStorage.getItem(STORAGE_KEYS.LEADERBOARD);
+    const q = query(collection(db, USERS_COLLECTION));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const entries: LeaderboardEntry[] = [];
+      
+      snapshot.forEach((doc) => {
+        const data = doc.data() as FirestoreUserDoc;
+        entries.push({
+          user: data.user,
+          streak: data.streak,
+          daysCount: calculateDaysCount(data.streak),
+        });
+      });
+      
+      // Sort by days count descending
+      entries.sort((a, b) => b.daysCount - a.daysCount);
+      setLeaderboard(entries);
+      setIsLoading(false);
+    }, (error) => {
+      console.error('Error fetching leaderboard:', error);
+      setIsLoading(false);
+    });
 
-    if (savedUser) {
-      setCurrentUser(JSON.parse(savedUser));
-    }
-    if (savedStreak) {
-      setStreakData(JSON.parse(savedStreak));
-    }
-    if (savedLeaderboard) {
-      setLeaderboard(JSON.parse(savedLeaderboard));
-    }
+    return () => unsubscribe();
   }, []);
 
-  // Save to localStorage when state changes
+  // Load current user's streak data when they log in
   useEffect(() => {
-    if (currentUser) {
-      localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(currentUser));
-    } else {
-      localStorage.removeItem(STORAGE_KEYS.USER);
-    }
+    if (!currentUser || currentUser.isGuest) return;
+
+    const fetchUserData = async () => {
+      try {
+        const userDoc = await getDoc(doc(db, USERS_COLLECTION, currentUser.id));
+        if (userDoc.exists()) {
+          const data = userDoc.data() as FirestoreUserDoc;
+          setStreakData(data.streak);
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+
+    fetchUserData();
   }, [currentUser]);
-
-  useEffect(() => {
-    if (streakData) {
-      localStorage.setItem(STORAGE_KEYS.STREAK, JSON.stringify(streakData));
-    } else {
-      localStorage.removeItem(STORAGE_KEYS.STREAK);
-    }
-  }, [streakData]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.LEADERBOARD, JSON.stringify(leaderboard));
-  }, [leaderboard]);
 
   const getDaysCount = (): number => {
     if (!streakData?.startDate || !streakData.isActive) return 0;
     const start = new Date(streakData.startDate);
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - start.getTime());
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
+    return Math.floor(diffTime / (1000 * 60 * 60 * 24));
   };
 
-  const updateLeaderboard = (user: User, streak: StreakData, days: number) => {
-    setLeaderboard(prev => {
-      const filtered = prev.filter(entry => entry.user.id !== user.id);
-      const newEntry: LeaderboardEntry = { user, streak, daysCount: days };
-      const updated = [...filtered, newEntry];
-      return updated.sort((a, b) => b.daysCount - a.daysCount);
-    });
+  // Save user data to Firestore
+  const saveToFirestore = async (user: User, streak: StreakData) => {
+    if (user.isGuest) return; // Don't save guest users to Firestore
+    
+    try {
+      const userDoc: FirestoreUserDoc = {
+        user,
+        streak,
+        updatedAt: Timestamp.now(),
+      };
+      await setDoc(doc(db, USERS_COLLECTION, user.id), userDoc);
+    } catch (error) {
+      console.error('Error saving to Firestore:', error);
+    }
   };
 
-  const login = (user: User) => {
+  const login = async (user: User) => {
     setCurrentUser(user);
-    // Check if user already has streak data
-    const existingEntry = leaderboard.find(entry => entry.user.id === user.id);
-    if (existingEntry) {
-      setStreakData(existingEntry.streak);
+    
+    if (!user.isGuest) {
+      // Check if user exists in Firestore
+      try {
+        const userDoc = await getDoc(doc(db, USERS_COLLECTION, user.id));
+        if (userDoc.exists()) {
+          const data = userDoc.data() as FirestoreUserDoc;
+          setStreakData(data.streak);
+          // Update user info (photo, name might have changed)
+          await saveToFirestore(user, data.streak);
+        }
+      } catch (error) {
+        console.error('Error during login:', error);
+      }
     }
   };
 
   const logout = () => {
     setCurrentUser(null);
     setStreakData(null);
-    localStorage.removeItem(STORAGE_KEYS.USER);
-    localStorage.removeItem(STORAGE_KEYS.STREAK);
   };
 
-  const startChallenge = () => {
+  const startChallenge = async () => {
     if (!currentUser) return;
     
     const newStreak: StreakData = {
@@ -157,10 +176,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       lastUpdateTime: new Date().toISOString(),
     };
     setStreakData(newStreak);
-    updateLeaderboard(currentUser, newStreak, 0);
+    await saveToFirestore(currentUser, newStreak);
   };
 
-  const relapse = () => {
+  const relapse = async () => {
     if (!currentUser) return;
     
     const resetStreak: StreakData = {
@@ -170,10 +189,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       lastUpdateTime: new Date().toISOString(),
     };
     setStreakData(resetStreak);
-    updateLeaderboard(currentUser, resetStreak, 0);
+    await saveToFirestore(currentUser, resetStreak);
   };
 
-  const confirmActive = () => {
+  const confirmActive = async () => {
     if (!currentUser || !streakData) return;
     
     const updatedStreak: StreakData = {
@@ -181,7 +200,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       lastUpdateTime: new Date().toISOString(),
     };
     setStreakData(updatedStreak);
-    updateLeaderboard(currentUser, updatedStreak, getDaysCount());
+    await saveToFirestore(currentUser, updatedStreak);
   };
 
   return (
@@ -190,6 +209,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         currentUser,
         streakData,
         leaderboard,
+        isLoading,
         login,
         logout,
         startChallenge,
