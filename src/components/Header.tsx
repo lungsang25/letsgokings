@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Crown, LogOut, Sun, Moon, ChevronDown, BookOpen, MessageSquare } from 'lucide-react';
+import { Crown, LogOut, Sun, Moon, ChevronDown, FileText, MessageSquare } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/ui/button';
@@ -71,6 +71,7 @@ const Header = () => {
               className="text-muted-foreground hover:text-foreground text-xs px-2"
               title="View Rules"
             >
+              <FileText className="h-3.5 w-3.5 mr-1" />
               Rules
             </Button>
 
