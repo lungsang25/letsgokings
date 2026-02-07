@@ -1,0 +1,51 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f1419"/>
+      <stop offset="50%" style="stop-color:#1a1a2e"/>
+      <stop offset="100%" style="stop-color:#16213e"/>
+    </linearGradient>
+    <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffd700"/>
+      <stop offset="50%" style="stop-color:#ffb700"/>
+      <stop offset="100%" style="stop-color:#ffa500"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bgGradient)"/>
+  
+  <!-- Decorative circles -->
+  <circle cx="100" cy="100" r="200" fill="#ffd700" opacity="0.03"/>
+  <circle cx="1100" cy="530" r="250" fill="#ffd700" opacity="0.03"/>
+  
+  <!-- Crown Icon -->
+  <g transform="translate(540, 120)" filter="url(#glow)">
+    <path d="M60 80L20 40L40 80L60 20L80 80L100 40L60 80Z" fill="url(#goldGradient)" stroke="#ffd700" stroke-width="2"/>
+    <rect x="15" y="75" width="90" height="15" rx="3" fill="url(#goldGradient)"/>
+  </g>
+  
+  <!-- Main Title -->
+  <text x="600" y="280" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="72" font-weight="bold" fill="url(#goldGradient)">LetsGoKings</text>
+  
+  <!-- Subtitle -->
+  <text x="600" y="350" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="32" fill="#ffffff">#1 NoFap &amp; Semen Retention Streak Tracker</text>
+  
+  <!-- Features -->
+  <text x="600" y="420" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="24" fill="#9ca3af">Streak Counter | Global Leaderboard | Community Support</text>
+  
+  <!-- CTA -->
+  <rect x="450" y="470" width="300" height="60" rx="30" fill="url(#goldGradient)"/>
+  <text x="600" y="510" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="bold" fill="#0f1419">Start Your Journey</text>
+  
+  <!-- URL -->
+  <text x="600" y="590" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="20" fill="#6b7280">letsgokings.com</text>
+</svg>

@@ -20,15 +20,20 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       includeAssets: ["crown-favicon.svg", "apple-touch-icon.svg"],
       manifest: {
-        name: "LetsGoKings",
+        name: "LetsGoKings - NoFap & Semen Retention Streak Tracker",
         short_name: "LetsGoKings",
-        description: "LetsGoKings - Your motivational companion",
+        description: "Track your NoFap and semen retention journey with streak counter, global leaderboard, community support, and daily motivation. Join thousands of kings on their self-improvement path.",
         theme_color: "#1a1a2e",
         background_color: "#1a1a2e",
         display: "standalone",
         orientation: "portrait",
         scope: "/",
         start_url: "/",
+        id: "letsgokings-nofap-tracker",
+        categories: ["health", "lifestyle", "productivity", "self-improvement"],
+        lang: "en-US",
+        dir: "ltr",
+        prefer_related_applications: false,
         icons: [
           {
             src: "pwa-192x192.svg",
