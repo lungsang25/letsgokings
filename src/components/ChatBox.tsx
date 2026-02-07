@@ -30,6 +30,29 @@ interface ChatMessage {
 const MESSAGES_COLLECTION = 'chat_messages';
 const MAX_MESSAGES = 100;
 
+// Create notification sound using Web Audio API
+const playNotificationSound = () => {
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+    oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.2);
+  } catch (error) {
+    console.warn('Could not play notification sound:', error);
+  }
+};
+
 const ChatBox = () => {
   const { currentUser } = useApp();
   const [isOpen, setIsOpen] = useState(true);
@@ -39,6 +62,8 @@ const ChatBox = () => {
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const isInitialLoad = useRef(true);
+  const previousMessagesCount = useRef(0);
 
   // Subscribe to real-time messages
   useEffect(() => {
@@ -57,11 +82,24 @@ const ChatBox = () => {
         } as ChatMessage);
       });
       // Reverse to show oldest first
-      setMessages(msgs.reverse());
+      const sortedMsgs = msgs.reverse();
+      
+      // Play sound for new messages from others (not on initial load)
+      if (!isInitialLoad.current && sortedMsgs.length > previousMessagesCount.current) {
+        const latestMsg = sortedMsgs[sortedMsgs.length - 1];
+        // Only play sound if the message is from someone else
+        if (latestMsg && currentUser && latestMsg.userId !== currentUser.id) {
+          playNotificationSound();
+        }
+      }
+      
+      isInitialLoad.current = false;
+      previousMessagesCount.current = sortedMsgs.length;
+      setMessages(sortedMsgs);
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [currentUser]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
