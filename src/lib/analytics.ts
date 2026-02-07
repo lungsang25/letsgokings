@@ -8,6 +8,7 @@ export type AnalyticsEvent =
   | { name: 'sign_up'; params: { method: 'google' | 'guest' } }
   | { name: 'challenge_started'; params: { user_type: 'google' | 'guest' } }
   | { name: 'relapse_reported'; params: { streak_days: number; user_type: 'google' | 'guest' } }
+  | { name: 'auto_relapse'; params: { streak_days: number; hours_inactive: number; user_type: 'google' | 'guest' } }
   | { name: 'streak_confirmed'; params: { streak_days: number; user_type: 'google' | 'guest' } }
   | { name: 'feedback_submitted'; params: { user_type: 'google' | 'guest' } }
   | { name: 'page_view'; params: { page_title: string; page_path: string } }
@@ -65,6 +66,10 @@ export const trackChallengeStarted = (userType: 'google' | 'guest') => {
 
 export const trackRelapse = (streakDays: number, userType: 'google' | 'guest') => {
   trackEvent({ name: 'relapse_reported', params: { streak_days: streakDays, user_type: userType } });
+};
+
+export const trackAutoRelapse = (streakDays: number, hoursInactive: number, userType: 'google' | 'guest') => {
+  trackEvent({ name: 'auto_relapse', params: { streak_days: streakDays, hours_inactive: hoursInactive, user_type: userType } });
 };
 
 export const trackStreakConfirmed = (streakDays: number, userType: 'google' | 'guest') => {

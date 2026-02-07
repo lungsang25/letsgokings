@@ -4,9 +4,9 @@ import {
   doc, 
   setDoc, 
   getDoc, 
+  getDocs,
   onSnapshot,
   query,
-  orderBy,
   Timestamp
 } from 'firebase/firestore';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
@@ -17,6 +17,7 @@ import {
   trackSignUp,
   trackChallengeStarted,
   trackRelapse,
+  trackAutoRelapse,
   trackStreakConfirmed,
   trackFeedbackSubmitted,
 } from '@/lib/analytics';
@@ -106,7 +107,7 @@ const calculateDaysCount = (streak: StreakData): number => {
   return Math.floor(diffTime / (1000 * 60 * 60 * 24));
 };
 
-// Check if user has been inactive for more than 24 hours
+// Check if user has been inactive for more than 24 hours (for leaderboard filtering)
 const isInactiveOver24Hours = (streak: StreakData): boolean => {
   if (!streak || streak.isActive) return false; // Active users are not filtered
   
@@ -115,6 +116,76 @@ const isInactiveOver24Hours = (streak: StreakData): boolean => {
   const hoursSinceInactive = (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60);
   
   return hoursSinceInactive > 24;
+};
+
+// Check if active user should be auto-relapsed (24+ hours without confirmation)
+const shouldAutoRelapse = (streak: StreakData): { shouldRelapse: boolean; hoursInactive: number } => {
+  if (!streak || !streak.isActive || !streak.startDate) {
+    return { shouldRelapse: false, hoursInactive: 0 };
+  }
+  
+  const lastUpdate = new Date(streak.lastUpdateTime);
+  const now = new Date();
+  const hoursInactive = (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60);
+  
+  return { shouldRelapse: hoursInactive >= 24, hoursInactive: Math.floor(hoursInactive) };
+};
+
+// Client-side auto-relapse: Process all inactive users in a collection
+const processAutoRelapseForCollection = async (collectionName: string): Promise<number> => {
+  let relapsedCount = 0;
+  
+  try {
+    const snapshot = await getDocs(collection(db, collectionName));
+    
+    for (const docSnapshot of snapshot.docs) {
+      const data = docSnapshot.data() as FirestoreUserDoc;
+      const { shouldRelapse, hoursInactive } = shouldAutoRelapse(data.streak);
+      
+      if (shouldRelapse) {
+        const streakDays = calculateDaysCount(data.streak);
+        
+        const resetStreak: StreakData = {
+          userId: data.streak.userId,
+          startDate: null,
+          isActive: false,
+          lastUpdateTime: new Date().toISOString(),
+          relapseTime: new Date().toISOString(),
+          previousStartDate: data.streak.startDate,
+        };
+        
+        await setDoc(doc(db, collectionName, data.user.id), {
+          user: data.user,
+          streak: resetStreak,
+          updatedAt: Timestamp.now(),
+        });
+        
+        // Track auto-relapse
+        trackAutoRelapse(streakDays, hoursInactive, data.user.isGuest ? 'guest' : 'google');
+        console.log(`Auto-relapsed ${data.user.name} after ${hoursInactive} hours of inactivity`);
+        relapsedCount++;
+      }
+    }
+  } catch (error) {
+    console.error(`Error processing auto-relapse for ${collectionName}:`, error);
+  }
+  
+  return relapsedCount;
+};
+
+// Run client-side auto-relapse check for all users
+const runClientAutoRelapse = async (): Promise<void> => {
+  console.log('Running client-side auto-relapse check...');
+  
+  const [usersRelapsed, guestsRelapsed] = await Promise.all([
+    processAutoRelapseForCollection(USERS_COLLECTION),
+    processAutoRelapseForCollection(GUESTS_COLLECTION),
+  ]);
+  
+  const total = usersRelapsed + guestsRelapsed;
+  if (total > 0) {
+    console.log(`Auto-relapse complete: ${usersRelapsed} users, ${guestsRelapsed} guests relapsed`);
+  }
 };
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -156,6 +227,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
 
     return () => unsubscribe();
+  }, []);
+
+  // Run client-side auto-relapse check once on app load
+  // This ensures inactive users are relapsed even if they never return
+  useEffect(() => {
+    runClientAutoRelapse();
   }, []);
 
   // Subscribe to leaderboard updates from both users and guests collections
@@ -263,6 +340,45 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       restoreGuestSession();
     }
   }, [isLoading, currentUser]);
+
+  // Auto-relapse check: mark user as relapsed if 24+ hours without confirmation
+  useEffect(() => {
+    if (!currentUser || !streakData) return;
+    
+    const { shouldRelapse, hoursInactive } = shouldAutoRelapse(streakData);
+    if (!shouldRelapse) return;
+    
+    const performAutoRelapse = async () => {
+      const streakDays = calculateDaysCount(streakData);
+      const resetStreak: StreakData = {
+        userId: currentUser.id,
+        startDate: null,
+        isActive: false,
+        lastUpdateTime: new Date().toISOString(),
+        relapseTime: new Date().toISOString(),
+        previousStartDate: streakData.startDate,
+      };
+      
+      setStreakData(resetStreak);
+      
+      const collectionName = currentUser.isGuest ? GUESTS_COLLECTION : USERS_COLLECTION;
+      try {
+        const userDoc = {
+          user: currentUser,
+          streak: resetStreak,
+          updatedAt: Timestamp.now(),
+        };
+        await setDoc(doc(db, collectionName, currentUser.id), userDoc);
+        // Track auto-relapse event
+        trackAutoRelapse(streakDays, hoursInactive, currentUser.isGuest ? 'guest' : 'google');
+        console.log(`Auto-relapsed user after ${hoursInactive} hours of inactivity`);
+      } catch (error) {
+        console.error('Error saving auto-relapse to Firestore:', error);
+      }
+    };
+    
+    performAutoRelapse();
+  }, [currentUser, streakData]);
 
   const getDaysCount = (): number => {
     if (!streakData?.startDate || !streakData.isActive) return 0;
