@@ -37,6 +37,7 @@ export interface StreakData {
   lastUpdateTime: string;
   relapseTime?: string | null; // Timestamp when user relapsed, used to show red indicator for 3 days
   previousStartDate?: string | null; // Start date before relapse, used to calculate who passed this user
+  exempt?: boolean; // If true, user is exempt from 24-hour auto-relapse
 }
 
 interface LeaderboardEntry {
@@ -121,6 +122,11 @@ const isInactiveOver24Hours = (streak: StreakData): boolean => {
 // Check if active user should be auto-relapsed (24+ hours without confirmation)
 const shouldAutoRelapse = (streak: StreakData): { shouldRelapse: boolean; hoursInactive: number } => {
   if (!streak || !streak.isActive || !streak.startDate) {
+    return { shouldRelapse: false, hoursInactive: 0 };
+  }
+  
+  // Exempt users are never auto-relapsed
+  if (streak.exempt) {
     return { shouldRelapse: false, hoursInactive: 0 };
   }
   
