@@ -20,6 +20,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { trackRulesViewed } from '@/lib/analytics';
 
 const Header = () => {
   const { currentUser, logout, submitFeedback } = useApp();
@@ -67,7 +68,10 @@ const Header = () => {
             {/* Rules Button */}
             <Button
               variant="ghost"
-              onClick={() => setRulesOpen(true)}
+              onClick={() => {
+                setRulesOpen(true);
+                trackRulesViewed(currentUser.isGuest ? 'guest' : 'google');
+              }}
               className="text-muted-foreground hover:text-foreground text-xs px-2"
               title="View Rules"
             >

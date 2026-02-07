@@ -11,6 +11,15 @@ import {
 } from 'firebase/firestore';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { db, auth } from '@/lib/firebase';
+import {
+  trackLogin,
+  trackLogout,
+  trackSignUp,
+  trackChallengeStarted,
+  trackRelapse,
+  trackStreakConfirmed,
+  trackFeedbackSubmitted,
+} from '@/lib/analytics';
 
 export interface User {
   id: string;
@@ -291,6 +300,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setStreakData(data.streak);
         // Update user info (photo, name might have changed)
         await saveToFirestore(finalUser, data.streak);
+        // Track login event
+        trackLogin(finalUser.isGuest ? 'guest' : 'google');
       } else if (finalUser.isGuest) {
         // New guest - don't save to Firestore yet, only save when they start challenge
         // Just set initial local state
@@ -301,6 +312,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           lastUpdateTime: new Date().toISOString(),
         };
         setStreakData(initialStreak);
+        // Track sign up for new guest
+        trackSignUp('guest');
+      } else {
+        // New Google user - track sign up
+        trackSignUp('google');
       }
     } catch (error) {
       console.error('Error during login:', error);
@@ -309,6 +325,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const logout = async () => {
     try {
+      const userType = currentUser?.isGuest ? 'guest' : 'google';
       // Only sign out from Firebase Auth if not a guest
       if (currentUser && !currentUser.isGuest) {
         await signOut(auth);
@@ -317,6 +334,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (currentUser?.isGuest) {
         localStorage.removeItem(GUEST_ID_KEY);
       }
+      // Track logout event
+      trackLogout(userType);
       setCurrentUser(null);
       setStreakData(null);
     } catch (error) {
@@ -335,11 +354,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
     setStreakData(newStreak);
     await saveToFirestore(currentUser, newStreak);
+    // Track challenge started event
+    trackChallengeStarted(currentUser.isGuest ? 'guest' : 'google');
   };
 
   const relapse = async () => {
     if (!currentUser) return;
     
+    // Track relapse with current streak days before resetting
+    const currentDays = getDaysCount();
     const resetStreak: StreakData = {
       userId: currentUser.id,
       startDate: null,
@@ -348,17 +371,22 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
     setStreakData(resetStreak);
     await saveToFirestore(currentUser, resetStreak);
+    // Track relapse event
+    trackRelapse(currentDays, currentUser.isGuest ? 'guest' : 'google');
   };
 
   const confirmActive = async () => {
     if (!currentUser || !streakData) return;
     
+    const currentDays = getDaysCount();
     const updatedStreak: StreakData = {
       ...streakData,
       lastUpdateTime: new Date().toISOString(),
     };
     setStreakData(updatedStreak);
     await saveToFirestore(currentUser, updatedStreak);
+    // Track streak confirmed event
+    trackStreakConfirmed(currentDays, currentUser.isGuest ? 'guest' : 'google');
   };
 
   const submitFeedback = async (message: string): Promise<boolean> => {
@@ -374,6 +402,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         createdAt: Timestamp.now(),
       };
       await setDoc(doc(db, FEEDBACK_COLLECTION, feedbackId), feedbackDoc);
+      // Track feedback submitted event
+      trackFeedbackSubmitted(currentUser.isGuest ? 'guest' : 'google');
       return true;
     } catch (error) {
       console.error('Error submitting feedback:', error);

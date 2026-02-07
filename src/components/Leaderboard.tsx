@@ -1,10 +1,19 @@
+import { useEffect } from 'react';
 import { Trophy, Users } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import UserCard from './UserCard';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { trackLeaderboardViewed } from '@/lib/analytics';
 
 const Leaderboard = () => {
   const { leaderboard, currentUser } = useApp();
+
+  // Track leaderboard view on mount
+  useEffect(() => {
+    if (currentUser) {
+      trackLeaderboardViewed(currentUser.isGuest ? 'guest' : 'google');
+    }
+  }, [currentUser?.id]);
 
   const sortedLeaderboard = [...leaderboard].sort((a, b) => {
     // Active users first, then by days count
