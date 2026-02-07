@@ -2,6 +2,7 @@ import { Download, X, Share } from "lucide-react";
 import { useState, useEffect } from "react";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { Button } from "@/components/ui/button";
+import { trackAppInstallClicked } from "@/lib/analytics";
 
 function isIOS(): boolean {
   if (typeof navigator === "undefined") return false;
@@ -102,7 +103,10 @@ export function InstallPWA() {
             Add to your home screen for quick access
           </p>
           <Button
-            onClick={install}
+            onClick={() => {
+              trackAppInstallClicked('android');
+              install();
+            }}
             size="sm"
             className="mt-2 w-full"
           >

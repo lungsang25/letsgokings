@@ -14,6 +14,7 @@ export type AnalyticsEvent =
   | { name: 'leaderboard_viewed'; params: { user_type: 'google' | 'guest' } }
   | { name: 'rules_viewed'; params: { user_type: 'google' | 'guest' } }
   | { name: 'live_chat_viewed'; params: { user_type: 'google' | 'guest' } }
+  | { name: 'app_install_clicked'; params: { platform: 'android' | 'ios' } }
   | { name: 'share_clicked'; params: { method: string; streak_days: number } };
 
 let analyticsInstance: Analytics | null = null;
@@ -88,6 +89,10 @@ export const trackRulesViewed = (userType: 'google' | 'guest') => {
 
 export const trackLiveChatViewed = (userType: 'google' | 'guest') => {
   trackEvent({ name: 'live_chat_viewed', params: { user_type: userType } });
+};
+
+export const trackAppInstallClicked = (platform: 'android' | 'ios') => {
+  trackEvent({ name: 'app_install_clicked', params: { platform } });
 };
 
 export const trackShareClicked = (method: string, streakDays: number) => {
