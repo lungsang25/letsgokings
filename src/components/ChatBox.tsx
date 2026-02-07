@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { MessageCircle, Send, X, Minimize2, Maximize2 } from 'lucide-react';
+import { trackLiveChatViewed } from '@/lib/analytics';
 
 interface ChatMessage {
   id: string;
@@ -129,11 +130,26 @@ const ChatBox = () => {
     return colors[Math.abs(hash) % colors.length];
   };
 
+  // Track chat view
+  const handleOpenChat = () => {
+    setIsOpen(true);
+    if (currentUser) {
+      trackLiveChatViewed(currentUser.isGuest ? 'guest' : 'google');
+    }
+  };
+
+  const handleExpandChat = () => {
+    setIsMinimized(false);
+    if (currentUser) {
+      trackLiveChatViewed(currentUser.isGuest ? 'guest' : 'google');
+    }
+  };
+
   // Floating button when chat is closed
   if (!isOpen) {
     return (
       <Button
-        onClick={() => setIsOpen(true)}
+        onClick={handleOpenChat}
         className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 z-50"
         size="icon"
       >
@@ -151,7 +167,7 @@ const ChatBox = () => {
       {/* Header */}
       <div 
         className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-t-lg cursor-pointer"
-        onClick={() => isMinimized && setIsMinimized(false)}
+        onClick={() => isMinimized && handleExpandChat()}
       >
         <div className="flex items-center gap-2">
           <MessageCircle className="h-5 w-5 text-white" />
@@ -165,7 +181,11 @@ const ChatBox = () => {
             className="h-7 w-7 text-white hover:bg-white/20"
             onClick={(e) => {
               e.stopPropagation();
-              setIsMinimized(!isMinimized);
+              if (isMinimized) {
+                handleExpandChat();
+              } else {
+                setIsMinimized(true);
+              }
             }}
           >
             {isMinimized ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}

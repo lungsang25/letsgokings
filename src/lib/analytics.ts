@@ -13,6 +13,7 @@ export type AnalyticsEvent =
   | { name: 'page_view'; params: { page_title: string; page_path: string } }
   | { name: 'leaderboard_viewed'; params: { user_type: 'google' | 'guest' } }
   | { name: 'rules_viewed'; params: { user_type: 'google' | 'guest' } }
+  | { name: 'live_chat_viewed'; params: { user_type: 'google' | 'guest' } }
   | { name: 'share_clicked'; params: { method: string; streak_days: number } };
 
 let analyticsInstance: Analytics | null = null;
@@ -83,6 +84,10 @@ export const trackLeaderboardViewed = (userType: 'google' | 'guest') => {
 
 export const trackRulesViewed = (userType: 'google' | 'guest') => {
   trackEvent({ name: 'rules_viewed', params: { user_type: userType } });
+};
+
+export const trackLiveChatViewed = (userType: 'google' | 'guest') => {
+  trackEvent({ name: 'live_chat_viewed', params: { user_type: userType } });
 };
 
 export const trackShareClicked = (method: string, streakDays: number) => {
