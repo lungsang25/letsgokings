@@ -1,15 +1,21 @@
-import { useEffect, useRef, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Trophy, Users } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import UserCard from './UserCard';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { trackLeaderboardViewed } from '@/lib/analytics';
 
+// Check if relapse happened within last 24 hours
+const isWithin24Hours = (relapseTime: string | null | undefined): boolean => {
+  if (!relapseTime) return false;
+  const relapseDate = new Date(relapseTime);
+  const now = new Date();
+  const hoursSinceRelapse = (now.getTime() - relapseDate.getTime()) / (1000 * 60 * 60);
+  return hoursSinceRelapse <= 24;
+};
+
 const Leaderboard = () => {
   const { leaderboard, currentUser } = useApp();
-  
-  // Store previous rankings to calculate rank changes
-  const previousRankingsRef = useRef<Map<string, number>>(new Map());
 
   // Track leaderboard view on mount
   useEffect(() => {
@@ -28,32 +34,52 @@ const Leaderboard = () => {
     });
   }, [leaderboard]);
 
-  // Calculate rank changes by comparing current rankings with previous
+  // Calculate rank changes based on recent relapses (within 24 hours)
+  // Users who relapsed get a down arrow
+  // Users whose startDate is between relapsed user's startDate and relapseTime get an up arrow
   const rankChanges = useMemo(() => {
     const changes = new Map<string, number>();
     
-    sortedLeaderboard.forEach((entry, index) => {
-      const currentRank = index + 1;
-      const previousRank = previousRankingsRef.current.get(entry.user.id);
+    // Find users who relapsed within 24 hours
+    const recentlyRelapsedUsers = sortedLeaderboard.filter(entry => 
+      isWithin24Hours(entry.streak.relapseTime)
+    );
+    
+    // Mark relapsed users with down arrow
+    recentlyRelapsedUsers.forEach(relapsedEntry => {
+      changes.set(relapsedEntry.user.id, -1);
       
-      if (previousRank !== undefined) {
-        // Positive = moved up (rank decreased), Negative = moved down (rank increased)
-        changes.set(entry.user.id, previousRank - currentRank);
-      } else {
-        changes.set(entry.user.id, 0); // New user, no change
+      // Use previousStartDate since startDate becomes null after relapse
+      const relapsedPreviousStartDate = relapsedEntry.streak.previousStartDate 
+        ? new Date(relapsedEntry.streak.previousStartDate).getTime() 
+        : null;
+      const relapseTime = relapsedEntry.streak.relapseTime 
+        ? new Date(relapsedEntry.streak.relapseTime).getTime() 
+        : null;
+      
+      if (relapsedPreviousStartDate && relapseTime) {
+        // Find users who "passed" this relapsed user
+        // Their startDate should be between relapsed user's previousStartDate and relapseTime
+        sortedLeaderboard.forEach(entry => {
+          // Skip the relapsed user themselves
+          if (entry.user.id === relapsedEntry.user.id) return;
+          // Skip users who also relapsed recently
+          if (isWithin24Hours(entry.streak.relapseTime)) return;
+          // Skip users without an active streak
+          if (!entry.streak.startDate || !entry.streak.isActive) return;
+          
+          const userStartDate = new Date(entry.streak.startDate).getTime();
+          
+          // If user started after the relapsed user started, but before they relapsed
+          // This user has "passed" the relapsed user
+          if (userStartDate > relapsedPreviousStartDate && userStartDate < relapseTime) {
+            changes.set(entry.user.id, 1);
+          }
+        });
       }
     });
     
     return changes;
-  }, [sortedLeaderboard]);
-
-  // Update previous rankings after calculating changes
-  useEffect(() => {
-    const newRankings = new Map<string, number>();
-    sortedLeaderboard.forEach((entry, index) => {
-      newRankings.set(entry.user.id, index + 1);
-    });
-    previousRankingsRef.current = newRankings;
   }, [sortedLeaderboard]);
 
   return (

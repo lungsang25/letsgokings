@@ -35,6 +35,7 @@ export interface StreakData {
   isActive: boolean;
   lastUpdateTime: string;
   relapseTime?: string | null; // Timestamp when user relapsed, used to show red indicator for 3 days
+  previousStartDate?: string | null; // Start date before relapse, used to calculate who passed this user
 }
 
 interface LeaderboardEntry {
@@ -364,7 +365,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       startDate: new Date().toISOString(),
       isActive: true,
       lastUpdateTime: new Date().toISOString(),
-      relapseTime: null, // Clear relapse time when starting new challenge
+      // Keep relapseTime and previousStartDate so arrows stay visible for 24 hours
+      relapseTime: streakData?.relapseTime || null,
+      previousStartDate: streakData?.previousStartDate || null,
     };
     setStreakData(newStreak);
     await saveToFirestore(currentUser, newStreak);
@@ -383,6 +386,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       isActive: false,
       lastUpdateTime: new Date().toISOString(),
       relapseTime: new Date().toISOString(), // Track when relapse happened
+      previousStartDate: streakData?.startDate || null, // Preserve start date for rank change calculation
     };
     setStreakData(resetStreak);
     await saveToFirestore(currentUser, resetStreak);

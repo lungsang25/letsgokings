@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Flame, Calendar, Trophy } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 
@@ -41,9 +41,19 @@ const StreakCounter = () => {
 
   const isActive = streakData?.isActive && streakData?.startDate;
 
-  // Calculate user's rank from leaderboard
+  // Sort leaderboard same way as Leaderboard component (active users first, then by days count)
+  const sortedLeaderboard = useMemo(() => {
+    return [...leaderboard].sort((a, b) => {
+      if (a.streak.isActive !== b.streak.isActive) {
+        return a.streak.isActive ? -1 : 1;
+      }
+      return b.daysCount - a.daysCount;
+    });
+  }, [leaderboard]);
+
+  // Calculate user's rank from sorted leaderboard
   const userRank = currentUser 
-    ? leaderboard.findIndex(entry => entry.user.id === currentUser.id) + 1 
+    ? sortedLeaderboard.findIndex(entry => entry.user.id === currentUser.id) + 1 
     : 0;
 
   return (
