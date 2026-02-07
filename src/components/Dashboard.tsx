@@ -25,13 +25,13 @@ const Dashboard = () => {
   const isActive = streakData?.isActive && streakData?.startDate;
   const daysCount = getDaysCount();
 
-  // Check if last update was more than 48 hours ago
+  // Check if last update was more than 24 hours ago
   const needsConfirmation = () => {
     if (!streakData?.lastUpdateTime) return false;
     const lastUpdate = new Date(streakData.lastUpdateTime);
     const now = new Date();
     const hoursDiff = (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60);
-    return hoursDiff >= 48;
+    return hoursDiff >= 24;
   };
 
   const handleConfirmActive = () => {
@@ -140,7 +140,7 @@ const Dashboard = () => {
 
                     {needsConfirmation() && (
                       <p className="text-xs text-amber-500 text-center">
-                        ⚠️ Please confirm your status within 48 hours to stay active
+                        ⚠️ Please confirm your status within 24 hours to stay active
                       </p>
                     )}
                   </>

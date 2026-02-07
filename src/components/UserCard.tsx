@@ -1,4 +1,4 @@
-import { Crown, Flame, AlertCircle } from 'lucide-react';
+import { Crown, Flame, AlertCircle, TriangleIcon } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface UserCardProps {
@@ -9,6 +9,8 @@ interface UserCardProps {
   isActive: boolean;
   isCurrentUser?: boolean;
   isGuest?: boolean;
+  rankChange?: number; // Positive = moved up, Negative = moved down
+  isRecentlyRelapsed?: boolean; // True if user relapsed within last 3 days
 }
 
 const UserCard = ({ 
@@ -18,7 +20,9 @@ const UserCard = ({
   daysCount, 
   isActive, 
   isCurrentUser,
-  isGuest 
+  isGuest,
+  rankChange = 0,
+  isRecentlyRelapsed = false
 }: UserCardProps) => {
   const getRankStyle = () => {
     switch (rank) {
@@ -99,12 +103,41 @@ const UserCard = ({
         </div>
       </div>
 
+      {/* Rank Change Indicator */}
+      {rankChange !== 0 && (
+        <div className="flex flex-col items-center justify-center">
+          {rankChange > 0 ? (
+            // Moved up - green arrow pointing up
+            <div className="flex flex-col items-center">
+              <TriangleIcon className="h-4 w-4 text-green-500 fill-green-500" />
+            </div>
+          ) : (
+            // Moved down - red arrow pointing down
+            <div className="flex flex-col items-center">
+              <TriangleIcon className="h-4 w-4 text-red-500 fill-red-500 rotate-180" />
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Days Count */}
       <div className="text-right">
-        <div className={`text-2xl font-display font-bold ${rank <= 3 ? 'text-background' : 'text-foreground'}`}>
+        <div className={`text-2xl font-display font-bold ${
+          isRecentlyRelapsed 
+            ? 'text-red-500' 
+            : rank <= 3 
+              ? 'text-background' 
+              : 'text-foreground'
+        }`}>
           {daysCount}
         </div>
-        <div className={`text-xs ${rank <= 3 ? 'text-background/70' : 'text-muted-foreground'}`}>
+        <div className={`text-xs ${
+          isRecentlyRelapsed 
+            ? 'text-red-400' 
+            : rank <= 3 
+              ? 'text-background/70' 
+              : 'text-muted-foreground'
+        }`}>
           {daysCount === 1 ? 'day' : 'days'}
         </div>
       </div>

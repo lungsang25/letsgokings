@@ -34,13 +34,24 @@ export interface StreakData {
   startDate: string | null;
   isActive: boolean;
   lastUpdateTime: string;
+  relapseTime?: string | null; // Timestamp when user relapsed, used to show red indicator for 3 days
 }
 
 interface LeaderboardEntry {
   user: User;
   streak: StreakData;
   daysCount: number;
+  isRecentlyRelapsed: boolean; // True if user relapsed within last 3 days
 }
+
+// Check if user has relapsed within the last 3 days
+const isWithinRelapsePeriod = (streak: StreakData): boolean => {
+  if (!streak.relapseTime) return false;
+  const relapseDate = new Date(streak.relapseTime);
+  const now = new Date();
+  const daysSinceRelapse = (now.getTime() - relapseDate.getTime()) / (1000 * 60 * 60 * 24);
+  return daysSinceRelapse <= 3;
+};
 
 // Firestore document structure
 interface FirestoreUserDoc {
@@ -171,6 +182,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           user: data.user,
           streak: data.streak,
           daysCount: calculateDaysCount(data.streak),
+          isRecentlyRelapsed: isWithinRelapsePeriod(data.streak),
         });
       });
       updateLeaderboard();
@@ -188,6 +200,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           user: data.user,
           streak: data.streak,
           daysCount: calculateDaysCount(data.streak),
+          isRecentlyRelapsed: isWithinRelapsePeriod(data.streak),
         });
       });
       updateLeaderboard();
@@ -351,6 +364,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       startDate: new Date().toISOString(),
       isActive: true,
       lastUpdateTime: new Date().toISOString(),
+      relapseTime: null, // Clear relapse time when starting new challenge
     };
     setStreakData(newStreak);
     await saveToFirestore(currentUser, newStreak);
@@ -368,6 +382,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       startDate: null,
       isActive: false,
       lastUpdateTime: new Date().toISOString(),
+      relapseTime: new Date().toISOString(), // Track when relapse happened
     };
     setStreakData(resetStreak);
     await saveToFirestore(currentUser, resetStreak);

@@ -141,7 +141,7 @@ const Header = () => {
             <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/30 border border-border/30">
               <span className="text-lg">2.</span>
               <p className="text-sm text-foreground/90">
-                <span className="font-semibold">Confirm your streak within 36 hours to stay active — otherwise, you'll be marked as relapsed.</span>
+                <span className="font-semibold">Confirm <span className="text-success">I am on track</span> within 24 hours to stay active — otherwise, you'll be marked as <span className="text-destructive">relapsed</span>.</span>
               </p>
             </div>
             <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/30 border border-border/30">
