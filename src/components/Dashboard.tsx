@@ -3,6 +3,12 @@ import { Flame, AlertTriangle, CheckCircle, Crown, RefreshCw, Quote } from 'luci
 import { useApp } from '@/contexts/AppContext';
 import { Button } from '@/components/ui/button';
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -19,7 +25,7 @@ import Header from './Header';
 import quotesData from '@/data/quotes.json';
 
 const Dashboard = () => {
-  const { streakData, startChallenge, relapse, confirmActive, getDaysCount } = useApp();
+  const { currentUser, streakData, startChallenge, relapse, confirmActive, getDaysCount } = useApp();
   const [showConfirmation, setShowConfirmation] = useState(false);
 
   const isActive = streakData?.isActive && streakData?.startDate;
@@ -77,13 +83,27 @@ const Dashboard = () => {
               
               <div className="space-y-3">
                 {!isActive ? (
-                  <Button
-                    onClick={startChallenge}
-                    className="w-full h-12 bg-gradient-gold text-primary-foreground hover:opacity-90 font-semibold text-base glow-primary"
-                  >
-                    <Flame className="h-5 w-5 mr-2" />
-                    Start Challenge
-                  </Button>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="w-full">
+                          <Button
+                            onClick={startChallenge}
+                            disabled={currentUser?.isGuest}
+                            className="w-full h-12 bg-gradient-gold text-primary-foreground hover:opacity-90 font-semibold text-base glow-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <Flame className="h-5 w-5 mr-2" />
+                            Start Challenge
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      {currentUser?.isGuest && (
+                        <TooltipContent className="px-4 py-2 text-sm">
+                          <p>Sign in to start your challenge</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
                 ) : (
                   <>
                     {/* Action Buttons Row */}
