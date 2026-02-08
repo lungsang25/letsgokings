@@ -30,7 +30,14 @@ const Leaderboard = () => {
       if (a.streak.isActive !== b.streak.isActive) {
         return a.streak.isActive ? -1 : 1;
       }
-      return b.daysCount - a.daysCount;
+      // Sort by days count (higher is better)
+      if (b.daysCount !== a.daysCount) {
+        return b.daysCount - a.daysCount;
+      }
+      // Tie-breaker: earlier startDate ranks higher (started first = more committed)
+      const aStart = a.streak.startDate ? new Date(a.streak.startDate).getTime() : Infinity;
+      const bStart = b.streak.startDate ? new Date(b.streak.startDate).getTime() : Infinity;
+      return aStart - bStart;
     });
   }, [leaderboard]);
 

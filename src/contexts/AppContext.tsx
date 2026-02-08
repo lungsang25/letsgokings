@@ -253,8 +253,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const allEntries = [...usersEntries, ...guestsEntries];
       // Filter out users who have been inactive for more than 24 hours
       const activeEntries = allEntries.filter(entry => !isInactiveOver24Hours(entry.streak));
-      // Sort by days count descending
-      activeEntries.sort((a, b) => b.daysCount - a.daysCount);
+      // Sort by days count descending, then by startDate ascending (earlier = higher rank)
+      activeEntries.sort((a, b) => {
+        if (b.daysCount !== a.daysCount) {
+          return b.daysCount - a.daysCount;
+        }
+        // Tie-breaker: earlier startDate ranks higher
+        const aStart = a.streak.startDate ? new Date(a.streak.startDate).getTime() : Infinity;
+        const bStart = b.streak.startDate ? new Date(b.streak.startDate).getTime() : Infinity;
+        return aStart - bStart;
+      });
       setLeaderboard(activeEntries);
     };
     
