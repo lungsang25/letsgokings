@@ -16,7 +16,10 @@ export type AnalyticsEvent =
   | { name: 'rules_viewed'; params: { user_type: 'google' | 'guest' } }
   | { name: 'live_chat_viewed'; params: { user_type: 'google' | 'guest' } }
   | { name: 'app_install_clicked'; params: { platform: 'android' | 'ios' } }
-  | { name: 'share_clicked'; params: { method: string; streak_days: number } };
+  | { name: 'share_clicked'; params: { method: string; streak_days: number } }
+  | { name: 'media_modal_opened'; params: { user_type: 'google' | 'guest' } }
+  | { name: 'video_started'; params: { video_id: string; video_title: string; user_type: 'google' | 'guest' } }
+  | { name: 'video_watch_time'; params: { video_id: string; video_title: string; watch_duration_seconds: number; user_type: 'google' | 'guest' } };
 
 let analyticsInstance: Analytics | null = null;
 
@@ -102,4 +105,16 @@ export const trackAppInstallClicked = (platform: 'android' | 'ios') => {
 
 export const trackShareClicked = (method: string, streakDays: number) => {
   trackEvent({ name: 'share_clicked', params: { method, streak_days: streakDays } });
+};
+
+export const trackMediaModalOpened = (userType: 'google' | 'guest') => {
+  trackEvent({ name: 'media_modal_opened', params: { user_type: userType } });
+};
+
+export const trackVideoStarted = (videoId: string, videoTitle: string, userType: 'google' | 'guest') => {
+  trackEvent({ name: 'video_started', params: { video_id: videoId, video_title: videoTitle, user_type: userType } });
+};
+
+export const trackVideoWatchTime = (videoId: string, videoTitle: string, watchDurationSeconds: number, userType: 'google' | 'guest') => {
+  trackEvent({ name: 'video_watch_time', params: { video_id: videoId, video_title: videoTitle, watch_duration_seconds: watchDurationSeconds, user_type: userType } });
 };

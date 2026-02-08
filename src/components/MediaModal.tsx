@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Play } from 'lucide-react';
 import {
   Dialog,
@@ -7,6 +7,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useApp } from '@/contexts/AppContext';
+import { trackMediaModalOpened, trackVideoStarted, trackVideoWatchTime } from '@/lib/analytics';
 
 interface Video {
   id: string;
@@ -51,17 +53,73 @@ interface MediaModalProps {
 }
 
 const MediaModal = ({ open, onOpenChange }: MediaModalProps) => {
+  const { currentUser } = useApp();
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
+  const videoStartTimeRef = useRef<number | null>(null);
+  const hasTrackedModalOpen = useRef(false);
+
+  const userType = currentUser?.isGuest ? 'guest' : 'google';
+
+  // Track modal opened
+  useEffect(() => {
+    if (open && !hasTrackedModalOpen.current) {
+      trackMediaModalOpened(userType);
+      hasTrackedModalOpen.current = true;
+    }
+    if (!open) {
+      hasTrackedModalOpen.current = false;
+    }
+  }, [open, userType]);
+
+  // Track video watch time when video changes or modal closes
+  useEffect(() => {
+    return () => {
+      // Cleanup: track watch time when component unmounts or video changes
+      if (selectedVideo && videoStartTimeRef.current) {
+        const watchDuration = Math.round((Date.now() - videoStartTimeRef.current) / 1000);
+        if (watchDuration > 0) {
+          trackVideoWatchTime(selectedVideo.id, selectedVideo.title, watchDuration, userType);
+        }
+      }
+    };
+  }, [selectedVideo, userType]);
 
   const handleVideoSelect = (video: Video) => {
+    // Track watch time for previous video if any
+    if (selectedVideo && videoStartTimeRef.current) {
+      const watchDuration = Math.round((Date.now() - videoStartTimeRef.current) / 1000);
+      if (watchDuration > 0) {
+        trackVideoWatchTime(selectedVideo.id, selectedVideo.title, watchDuration, userType);
+      }
+    }
+    
+    // Track new video started
+    trackVideoStarted(video.id, video.title, userType);
+    videoStartTimeRef.current = Date.now();
     setSelectedVideo(video);
   };
 
   const handleBack = () => {
+    // Track watch time when going back
+    if (selectedVideo && videoStartTimeRef.current) {
+      const watchDuration = Math.round((Date.now() - videoStartTimeRef.current) / 1000);
+      if (watchDuration > 0) {
+        trackVideoWatchTime(selectedVideo.id, selectedVideo.title, watchDuration, userType);
+      }
+    }
+    videoStartTimeRef.current = null;
     setSelectedVideo(null);
   };
 
   const handleClose = () => {
+    // Track watch time when closing modal
+    if (selectedVideo && videoStartTimeRef.current) {
+      const watchDuration = Math.round((Date.now() - videoStartTimeRef.current) / 1000);
+      if (watchDuration > 0) {
+        trackVideoWatchTime(selectedVideo.id, selectedVideo.title, watchDuration, userType);
+      }
+    }
+    videoStartTimeRef.current = null;
     setSelectedVideo(null);
     onOpenChange(false);
   };
