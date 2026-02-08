@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Flame, AlertTriangle, CheckCircle, Crown, RefreshCw, Quote } from 'lucide-react';
+import { Film, Flame, AlertTriangle, CheckCircle, Crown, RefreshCw } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,6 +20,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import StreakCounter from './StreakCounter';
+import MediaModal from './MediaModal';
 import Leaderboard from './Leaderboard';
 import Header from './Header';
 import quotesData from '@/data/quotes.json';
@@ -27,6 +28,7 @@ import quotesData from '@/data/quotes.json';
 const Dashboard = () => {
   const { currentUser, streakData, startChallenge, relapse, confirmActive, getDaysCount } = useApp();
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showMediaModal, setShowMediaModal] = useState(false);
 
   const isActive = streakData?.isActive && streakData?.startDate;
   const daysCount = getDaysCount();
@@ -75,6 +77,16 @@ const Dashboard = () => {
         <div className="grid lg:grid-cols-2 gap-6 sm:gap-8">
           {/* Left Column - Streak & Actions */}
           <div className="space-y-6">
+            {/* Media Button */}
+            <Button
+              onClick={() => setShowMediaModal(true)}
+              variant="outline"
+              className="w-full h-12 border-primary/50 text-primary hover:bg-primary/10 hover:border-primary font-medium"
+            >
+              <Film className="h-5 w-5 mr-2" />
+              Media
+            </Button>
+
             <StreakCounter />
 
             {/* Action Buttons */}
@@ -190,6 +202,8 @@ const Dashboard = () => {
           <Leaderboard />
         </div>
       </main>
+
+      <MediaModal open={showMediaModal} onOpenChange={setShowMediaModal} />
     </div>
   );
 };
