@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Play } from 'lucide-react';
+import { Play, Eye } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -9,6 +9,8 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useApp } from '@/contexts/AppContext';
 import { trackMediaModalOpened, trackVideoStarted, trackVideoWatchTime } from '@/lib/analytics';
+import { db } from '@/lib/firebase';
+import { doc, getDoc, setDoc, increment } from 'firebase/firestore';
 
 interface Video {
   id: string;
@@ -55,10 +57,45 @@ interface MediaModalProps {
 const MediaModal = ({ open, onOpenChange }: MediaModalProps) => {
   const { currentUser } = useApp();
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
+  const [viewCounts, setViewCounts] = useState<Record<string, number>>({});
   const videoStartTimeRef = useRef<number | null>(null);
   const hasTrackedModalOpen = useRef(false);
 
   const userType = currentUser?.isGuest ? 'guest' : 'google';
+
+  // Fetch view counts when modal opens
+  useEffect(() => {
+    if (open) {
+      fetchViewCounts();
+    }
+  }, [open]);
+
+  const fetchViewCounts = async () => {
+    try {
+      const viewCountsDoc = await getDoc(doc(db, 'videoStats', 'viewCounts'));
+      if (viewCountsDoc.exists()) {
+        setViewCounts(viewCountsDoc.data() as Record<string, number>);
+      }
+    } catch (error) {
+      console.error('Error fetching view counts:', error);
+    }
+  };
+
+  const incrementViewCount = async (videoId: string) => {
+    try {
+      await setDoc(doc(db, 'videoStats', 'viewCounts'), {
+        [videoId]: increment(1)
+      }, { merge: true });
+      
+      // Update local state
+      setViewCounts(prev => ({
+        ...prev,
+        [videoId]: (prev[videoId] || 0) + 1
+      }));
+    } catch (error) {
+      console.error('Error incrementing view count:', error);
+    }
+  };
 
   // Track modal opened
   useEffect(() => {
@@ -93,8 +130,9 @@ const MediaModal = ({ open, onOpenChange }: MediaModalProps) => {
       }
     }
     
-    // Track new video started
+    // Track new video started and increment view count
     trackVideoStarted(video.id, video.title, userType);
+    incrementViewCount(video.id);
     videoStartTimeRef.current = Date.now();
     setSelectedVideo(video);
   };
@@ -138,7 +176,7 @@ const MediaModal = ({ open, onOpenChange }: MediaModalProps) => {
                 <span>Back to Videos</span>
               </button>
             ) : (
-              'Motivational Media'
+              'Media'
             )}
           </DialogTitle>
         </DialogHeader>
@@ -154,7 +192,6 @@ const MediaModal = ({ open, onOpenChange }: MediaModalProps) => {
                 className="w-full h-full"
               />
             </div>
-            <h3 className="mt-4 text-lg font-semibold">{selectedVideo.title}</h3>
           </div>
         ) : (
           <ScrollArea className="flex-1 h-[calc(85vh-80px)]">
@@ -176,11 +213,11 @@ const MediaModal = ({ open, onOpenChange }: MediaModalProps) => {
                         <Play className="h-6 w-6 text-primary-foreground ml-1" />
                       </div>
                     </div>
-                  </div>
-                  <div className="p-3">
-                    <h4 className="text-sm font-medium text-left line-clamp-2">
-                      {video.title}
-                    </h4>
+                    {/* View count badge */}
+                    <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-black/70 px-2 py-1 rounded text-xs text-white">
+                      <Eye className="h-3 w-3" />
+                      <span>{viewCounts[video.id] || 0}</span>
+                    </div>
                   </div>
                 </button>
               ))}
