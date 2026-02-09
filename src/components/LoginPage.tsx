@@ -3,7 +3,7 @@ import { signInWithPopup, signInWithRedirect, getRedirectResult } from 'firebase
 import { Crown, Info, Camera, User, Loader2 } from 'lucide-react';
 import { auth, googleProvider } from '@/lib/firebase';
 import { FirebaseError } from 'firebase/app';
-import { useApp } from '@/contexts/AppContext';
+import { useApp, checkGuestCredentials, registerGuest } from '@/contexts/AppContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -56,7 +56,9 @@ const compressImage = (file: File, maxSize: number = 150): Promise<string> => {
 
 const LoginPage = () => {
   const { login } = useApp();
-  const [guestName, setGuestName] = useState('');
+  const [guestUsername, setGuestUsername] = useState('');
+  const [guestPassword, setGuestPassword] = useState('');
+  const [isGuestLogin, setIsGuestLogin] = useState(true); // true = login, false = register
   const [showGuestForm, setShowGuestForm] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -130,16 +132,45 @@ const LoginPage = () => {
     }
   };
 
-  const handleGuestLogin = () => {
-    if (!guestName.trim()) return;
+  const handleGuestLogin = async () => {
+    if (!guestUsername.trim() || !guestPassword.trim()) {
+      setError('Please enter both username and password');
+      return;
+    }
     
-    const guestUser = {
-      id: 'guest_' + Date.now(),
-      name: guestName.trim(),
-      isGuest: true,
-      photoUrl: profileImage || undefined,
-    };
-    login(guestUser);
+    // Require profile image for registration
+    if (!isGuestLogin && !profileImage) {
+      setError('Please upload a profile picture');
+      return;
+    }
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      if (isGuestLogin) {
+        // Login mode - check credentials
+        const result = await checkGuestCredentials(guestUsername.trim(), guestPassword);
+        if (result.success && result.user) {
+          login(result.user);
+        } else {
+          setError(result.error || 'Invalid username or password');
+        }
+      } else {
+        // Register mode - create new guest
+        const result = await registerGuest(guestUsername.trim(), guestPassword, profileImage || undefined);
+        if (result.success && result.user) {
+          login(result.user);
+        } else {
+          setError(result.error || 'Failed to register');
+        }
+      }
+    } catch (err) {
+      console.error('Guest auth error:', err);
+      setError('An error occurred. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -262,45 +293,85 @@ const LoginPage = () => {
             <Alert className="bg-[#151a26] border-gray-700 rounded-lg">
               <Info className="h-4 w-4 text-gray-400" />
               <AlertDescription className="text-sm text-gray-400 ml-2">
-                Your progress will be saved and visible on the public leaderboard.
+                Please remember username and password for future login.
               </AlertDescription>
             </Alert>
 
-            {/* Profile Image Upload */}
-            <div className="flex justify-center">
-              <div 
-                onClick={triggerFileInput}
-                className="relative w-24 h-24 rounded-full overflow-hidden cursor-pointer group border-2 border-blue-500/50 hover:border-blue-400 transition-colors"
+            {/* Login/Register Toggle */}
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={() => setIsGuestLogin(true)}
+                className={`text-sm font-medium transition-colors ${
+                  isGuestLogin ? 'text-blue-400 border-b-2 border-blue-400' : 'text-gray-500 hover:text-gray-300'
+                }`}
               >
-                {profileImage ? (
-                  <img 
-                    src={profileImage} 
-                    alt="Profile" 
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-[#151a26] flex items-center justify-center">
-                    <User className="h-10 w-10 text-gray-500" />
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Camera className="h-6 w-6 text-white" />
-                </div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                />
-              </div>
+                Login
+              </button>
+              <button
+                onClick={() => setIsGuestLogin(false)}
+                className={`text-sm font-medium transition-colors ${
+                  !isGuestLogin ? 'text-blue-400 border-b-2 border-blue-400' : 'text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                Register
+              </button>
             </div>
 
-            {/* Name Input */}
+            {/* Error Message */}
+            {error && (
+              <Alert className="bg-red-500/10 border-red-500/50 rounded-lg">
+                <AlertDescription className="text-sm text-red-400 text-center">
+                  {error}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Profile Image Upload - Only show in register mode */}
+            {!isGuestLogin && (
+              <div className="flex justify-center">
+                <div 
+                  onClick={triggerFileInput}
+                  className="relative w-24 h-24 rounded-full overflow-hidden cursor-pointer group border-2 border-blue-500/50 hover:border-blue-400 transition-colors"
+                >
+                  {profileImage ? (
+                    <img 
+                      src={profileImage} 
+                      alt="Profile" 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-[#151a26] flex items-center justify-center">
+                      <User className="h-10 w-10 text-gray-500" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Camera className="h-6 w-6 text-white" />
+                  </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Username Input */}
             <Input
-              placeholder="Enter your name"
-              value={guestName}
-              onChange={(e) => setGuestName(e.target.value)}
+              placeholder="Enter username"
+              value={guestUsername}
+              onChange={(e) => setGuestUsername(e.target.value)}
+              className="h-12 bg-[#151a26] border-gray-700 text-white placeholder:text-gray-500 rounded-full focus:border-blue-500 px-5"
+            />
+
+            {/* Password Input */}
+            <Input
+              type="password"
+              placeholder="Enter password"
+              value={guestPassword}
+              onChange={(e) => setGuestPassword(e.target.value)}
               className="h-12 bg-[#151a26] border-gray-700 text-white placeholder:text-gray-500 rounded-full focus:border-blue-500 px-5"
               onKeyDown={(e) => e.key === 'Enter' && handleGuestLogin()}
             />
@@ -316,10 +387,17 @@ const LoginPage = () => {
               </Button>
               <Button
                 onClick={handleGuestLogin}
-                disabled={!guestName.trim()}
+                disabled={isLoading}
                 className="flex-1 h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full disabled:opacity-50"
               >
-                Join as Guest
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    {isGuestLogin ? 'Logging in...' : 'Registering...'}
+                  </>
+                ) : (
+                  isGuestLogin ? 'Login' : 'Register'
+                )}
               </Button>
             </div>
           </div>

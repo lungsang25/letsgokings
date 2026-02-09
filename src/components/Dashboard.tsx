@@ -3,12 +3,6 @@ import { Film, Flame, AlertTriangle, CheckCircle, Crown, RefreshCw } from 'lucid
 import { useApp } from '@/contexts/AppContext';
 import { Button } from '@/components/ui/button';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -84,7 +78,7 @@ const Dashboard = () => {
               className="w-full h-12 border-primary/50 text-primary hover:bg-primary/10 hover:border-primary font-medium"
             >
               <Film className="h-5 w-5 mr-2" />
-              Media
+              Video Gallery 
             </Button>
 
             <StreakCounter />
@@ -95,27 +89,13 @@ const Dashboard = () => {
               
               <div className="space-y-3">
                 {!isActive ? (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="w-full">
-                          <Button
-                            onClick={startChallenge}
-                            disabled={currentUser?.isGuest}
-                            className="w-full h-12 bg-gradient-gold text-primary-foreground hover:opacity-90 font-semibold text-base glow-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            <Flame className="h-5 w-5 mr-2" />
-                            Start Challenge
-                          </Button>
-                        </span>
-                      </TooltipTrigger>
-                      {currentUser?.isGuest && (
-                        <TooltipContent className="px-4 py-2 text-sm">
-                          <p>Sign in to start your challenge</p>
-                        </TooltipContent>
-                      )}
-                    </Tooltip>
-                  </TooltipProvider>
+                  <Button
+                    onClick={startChallenge}
+                    className="w-full h-12 bg-gradient-gold text-primary-foreground hover:opacity-90 font-semibold text-base glow-primary"
+                  >
+                    <Flame className="h-5 w-5 mr-2" />
+                    Start Challenge
+                  </Button>
                 ) : (
                   <>
                     {/* Action Buttons Row */}

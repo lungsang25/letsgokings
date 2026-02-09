@@ -7,6 +7,7 @@ import {
   getDocs,
   onSnapshot,
   query,
+  where,
   Timestamp
 } from 'firebase/firestore';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
@@ -29,6 +30,16 @@ export interface User {
   photoUrl?: string;
   isGuest: boolean;
 }
+
+// Guest credentials stored in Firestore
+interface GuestCredentials {
+  username: string;
+  password: string; // In production, this should be hashed
+  guestId: string;
+  createdAt: Timestamp;
+}
+
+const GUEST_CREDENTIALS_COLLECTION = 'guest_credentials';
 
 export interface StreakData {
   userId: string;
@@ -83,6 +94,7 @@ const USERS_COLLECTION = 'users';
 const GUESTS_COLLECTION = 'guests';
 const FEEDBACK_COLLECTION = 'feedback';
 const GUEST_ID_KEY = 'letsgokings_guest_id';
+const GUEST_USERNAME_KEY = 'letsgokings_guest_username';
 
 // Get or create a persistent guest ID
 const getOrCreateGuestId = (): string => {
@@ -97,6 +109,110 @@ const getOrCreateGuestId = (): string => {
 // Get existing guest ID (returns null if none exists)
 const getExistingGuestId = (): string | null => {
   return localStorage.getItem(GUEST_ID_KEY);
+};
+
+// Check if username already exists in guest_credentials collection
+const checkUsernameExists = async (username: string): Promise<boolean> => {
+  try {
+    const credentialsQuery = query(
+      collection(db, GUEST_CREDENTIALS_COLLECTION),
+      where('username', '==', username.toLowerCase())
+    );
+    const snapshot = await getDocs(credentialsQuery);
+    return !snapshot.empty;
+  } catch (error) {
+    console.error('Error checking username:', error);
+    return false;
+  }
+};
+
+// Register a new guest with username and password
+export const registerGuest = async (
+  username: string,
+  password: string,
+  photoUrl?: string
+): Promise<{ success: boolean; user?: User; error?: string }> => {
+  try {
+    // Check if username already exists
+    const exists = await checkUsernameExists(username);
+    if (exists) {
+      return { success: false, error: 'Username already exists. Please choose a different one.' };
+    }
+
+    // Create a new guest ID
+    const guestId = 'guest_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    
+    // Store credentials in guest_credentials collection
+    const credentials: GuestCredentials = {
+      username: username.toLowerCase(),
+      password: password, // Note: In production, hash this password
+      guestId: guestId,
+      createdAt: Timestamp.now(),
+    };
+    
+    await setDoc(doc(db, GUEST_CREDENTIALS_COLLECTION, username.toLowerCase()), credentials);
+    
+    // Store guest ID and username in localStorage for session persistence
+    localStorage.setItem(GUEST_ID_KEY, guestId);
+    localStorage.setItem(GUEST_USERNAME_KEY, username.toLowerCase());
+    
+    const user: User = {
+      id: guestId,
+      name: username,
+      isGuest: true,
+      photoUrl: photoUrl,
+    };
+    
+    return { success: true, user };
+  } catch (error) {
+    console.error('Error registering guest:', error);
+    return { success: false, error: 'Failed to register. Please try again.' };
+  }
+};
+
+// Check guest credentials for login
+export const checkGuestCredentials = async (
+  username: string,
+  password: string
+): Promise<{ success: boolean; user?: User; error?: string }> => {
+  try {
+    // Get credentials document by username
+    const credDoc = await getDoc(doc(db, GUEST_CREDENTIALS_COLLECTION, username.toLowerCase()));
+    
+    if (!credDoc.exists()) {
+      return { success: false, error: 'Username not found. Please register first.' };
+    }
+    
+    const credentials = credDoc.data() as GuestCredentials;
+    
+    // Check password
+    if (credentials.password !== password) {
+      return { success: false, error: 'Invalid password.' };
+    }
+    
+    // Store guest ID and username in localStorage for session persistence
+    localStorage.setItem(GUEST_ID_KEY, credentials.guestId);
+    localStorage.setItem(GUEST_USERNAME_KEY, username.toLowerCase());
+    
+    // Get user data from guests collection
+    const guestDoc = await getDoc(doc(db, GUESTS_COLLECTION, credentials.guestId));
+    
+    if (guestDoc.exists()) {
+      const data = guestDoc.data() as FirestoreUserDoc;
+      return { success: true, user: data.user };
+    } else {
+      // User exists in credentials but not in guests collection (first time after registration)
+      const user: User = {
+        id: credentials.guestId,
+        name: username,
+        isGuest: true,
+      };
+      return { success: true, user };
+    }
+  } catch (error) {
+    console.error('Error checking guest credentials:', error);
+    return { success: false, error: 'Failed to login. Please try again.' };
+  }
 };
 
 // Helper to calculate days from streak
@@ -253,8 +369,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const allEntries = [...usersEntries, ...guestsEntries];
       // Filter out users who have been inactive for more than 24 hours
       const activeEntries = allEntries.filter(entry => !isInactiveOver24Hours(entry.streak));
-      // Sort by days count descending, then by startDate ascending (earlier = higher rank)
+      // Sort: active users first, then by days count descending, then by startDate ascending
       activeEntries.sort((a, b) => {
+        // Active users first
+        if (a.streak.isActive !== b.streak.isActive) {
+          return a.streak.isActive ? -1 : 1;
+        }
+        // Sort by days count (higher is better)
         if (b.daysCount !== a.daysCount) {
           return b.daysCount - a.daysCount;
         }
@@ -474,9 +595,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (currentUser && !currentUser.isGuest) {
         await signOut(auth);
       }
-      // Clear guest ID from localStorage when logging out
+      // Clear guest ID and username from localStorage when logging out
       if (currentUser?.isGuest) {
         localStorage.removeItem(GUEST_ID_KEY);
+        localStorage.removeItem(GUEST_USERNAME_KEY);
       }
       // Track logout event
       trackLogout(userType);
