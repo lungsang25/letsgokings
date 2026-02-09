@@ -360,7 +360,7 @@ const LoginPage = () => {
 
             {/* Username Input */}
             <Input
-              placeholder="Enter username"
+              placeholder="username"
               value={guestUsername}
               onChange={(e) => setGuestUsername(e.target.value)}
               className="h-12 bg-[#151a26] border-gray-700 text-white placeholder:text-gray-500 rounded-full focus:border-blue-500 px-5"
@@ -369,7 +369,7 @@ const LoginPage = () => {
             {/* Password Input */}
             <Input
               type="password"
-              placeholder="Enter password"
+              placeholder="password"
               value={guestPassword}
               onChange={(e) => setGuestPassword(e.target.value)}
               className="h-12 bg-[#151a26] border-gray-700 text-white placeholder:text-gray-500 rounded-full focus:border-blue-500 px-5"
