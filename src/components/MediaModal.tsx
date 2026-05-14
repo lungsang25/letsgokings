@@ -20,33 +20,21 @@ interface Video {
 
 // Curated list of motivational/self-improvement videos
 const videos: Video[] = [
+  { id: 'Bh1XdxUTkfw', title: 'Video 27', thumbnail: 'https://img.youtube.com/vi/Bh1XdxUTkfw/mqdefault.jpg' },
   { id: 'EmKKSQ0Dy4M', title: 'Video 1', thumbnail: 'https://img.youtube.com/vi/EmKKSQ0Dy4M/mqdefault.jpg' },
-  { id: 'gJctVD_oMx4', title: 'Video 2', thumbnail: 'https://img.youtube.com/vi/gJctVD_oMx4/mqdefault.jpg' },
   { id: '0KqmvRtQV-E', title: 'Video 3', thumbnail: 'https://img.youtube.com/vi/0KqmvRtQV-E/mqdefault.jpg' },
   { id: 'bxkUSK3H6Hk', title: 'Video 4', thumbnail: 'https://img.youtube.com/vi/bxkUSK3H6Hk/mqdefault.jpg' },
   { id: 'l7ImtskJx8c', title: 'Video 5', thumbnail: 'https://img.youtube.com/vi/l7ImtskJx8c/mqdefault.jpg' },
   { id: 'KnAMJXuE0Cc', title: 'Video 6', thumbnail: 'https://img.youtube.com/vi/KnAMJXuE0Cc/mqdefault.jpg' },
-  { id: 'tBAzIyPTJX0', title: 'Video 7', thumbnail: 'https://img.youtube.com/vi/tBAzIyPTJX0/mqdefault.jpg' },
-  { id: 'u4j2d7iLWsw', title: 'Video 8', thumbnail: 'https://img.youtube.com/vi/u4j2d7iLWsw/mqdefault.jpg' },
   { id: 'Y5Oapy7C4gE', title: 'Video 9', thumbnail: 'https://img.youtube.com/vi/Y5Oapy7C4gE/mqdefault.jpg' },
   { id: 'aHb_I2oSlyY', title: 'Video 10', thumbnail: 'https://img.youtube.com/vi/aHb_I2oSlyY/mqdefault.jpg' },
   { id: '7FP5BN8r4ig', title: 'Video 11', thumbnail: 'https://img.youtube.com/vi/7FP5BN8r4ig/mqdefault.jpg' },
-  { id: 'vWSyGIDXIFE', title: 'Video 12', thumbnail: 'https://img.youtube.com/vi/vWSyGIDXIFE/mqdefault.jpg' },
-  { id: '-VtGmNlCvG8', title: 'Video 13', thumbnail: 'https://img.youtube.com/vi/-VtGmNlCvG8/mqdefault.jpg' },
   { id: 'ZFYRfryUECE', title: 'Video 14', thumbnail: 'https://img.youtube.com/vi/ZFYRfryUECE/mqdefault.jpg' },
-  { id: 't1XfAlE_lHk', title: 'Video 15', thumbnail: 'https://img.youtube.com/vi/t1XfAlE_lHk/mqdefault.jpg' },
-  { id: '63SXG7YV7lc', title: 'Video 16', thumbnail: 'https://img.youtube.com/vi/63SXG7YV7lc/mqdefault.jpg' },
   { id: 'O8tcQ_77TB4', title: 'Video 17', thumbnail: 'https://img.youtube.com/vi/O8tcQ_77TB4/mqdefault.jpg' },
   { id: 'yq_7WEBBvKA', title: 'Video 18', thumbnail: 'https://img.youtube.com/vi/yq_7WEBBvKA/mqdefault.jpg' },
-  { id: 'FTsC9j7kRTc', title: 'Video 19', thumbnail: 'https://img.youtube.com/vi/FTsC9j7kRTc/mqdefault.jpg' },
   { id: 'qpn8Lifa5s4', title: 'Video 20', thumbnail: 'https://img.youtube.com/vi/qpn8Lifa5s4/mqdefault.jpg' },
-  { id: 'vrsoCEUqErk', title: 'Video 21', thumbnail: 'https://img.youtube.com/vi/vrsoCEUqErk/mqdefault.jpg' },
-  { id: '72Cc1EZl-mM', title: 'Video 22', thumbnail: 'https://img.youtube.com/vi/72Cc1EZl-mM/mqdefault.jpg' },
-  { id: 'J4B7zvHFiQY', title: 'Video 23', thumbnail: 'https://img.youtube.com/vi/J4B7zvHFiQY/mqdefault.jpg' },
   { id: 'WDKXBSq8pJs', title: 'Video 24', thumbnail: 'https://img.youtube.com/vi/WDKXBSq8pJs/mqdefault.jpg' },
-  { id: 'QmOF0crdyRU', title: 'Video 25', thumbnail: 'https://img.youtube.com/vi/QmOF0crdyRU/mqdefault.jpg' },
   { id: '5HNO_JfY2Y0', title: 'Video 26', thumbnail: 'https://img.youtube.com/vi/5HNO_JfY2Y0/mqdefault.jpg' },
-  { id: 'Bh1XdxUTkfw', title: 'Video 27', thumbnail: 'https://img.youtube.com/vi/Bh1XdxUTkfw/mqdefault.jpg' },
 ];
 
 interface MediaModalProps {
